@@ -20,13 +20,22 @@ void CalendarSelector::begin() {
 
         setupRoutes();
         _server.begin();
-        LOG_DEBUG("Webserver gestartet. Öffne http://<device-ip>/ zur Kalenderauswahl.");
+        String url = "http://" + WiFi.localIP().toString() + "/";
+        LOG_DEBUG("Webserver gestartet. Öffne %s zur Kalenderauswahl.", url.c_str());
+        
+        if (_serverStartedCallback) {
+            _serverStartedCallback(url);
+        }
 
         while (_selectedCalendarIds.empty()) {
             _server.handleClient();
             delay(10);
         }
     }
+}
+
+void CalendarSelector::onServerStarted(ServerStartedCallback cb) {
+    _serverStartedCallback = cb;
 }
 
 bool CalendarSelector::hasSelectedCalendars() const {

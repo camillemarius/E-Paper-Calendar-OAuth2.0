@@ -8,9 +8,9 @@
 // External Library
 #include <string>
 
-class WifiDisplay : public IDisplay{
+class CalendarSelectorDisplay : public IDisplay{
 public:
-    WifiDisplay(EpaperDriver& display);
+    CalendarSelectorDisplay(EpaperDriver& display);
     void show(const String& url);
 
 private:

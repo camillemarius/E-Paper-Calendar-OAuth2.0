@@ -84,10 +84,10 @@ void WeeklyCalendar::drawCalendar(const std::vector<CalendarEvent>& events) {
     // Schritt 6: Zeichne Seiten
     display.firstPage();
     do {
+        drawGrid(dynamicHeaderHeight, startHour, endHour, hourH);
         drawDayLabels(filteredEvents, weekStart);
         drawAllDayEvents(filteredEvents, dynamicHeaderHeight, weekStart);
         drawTimedEvents(filteredEvents, dynamicHeaderHeight, startHour, endHour, hourH, weekStart);
-        drawGrid(dynamicHeaderHeight, startHour, endHour, hourH);
     } while (display.nextPage());
 }
 

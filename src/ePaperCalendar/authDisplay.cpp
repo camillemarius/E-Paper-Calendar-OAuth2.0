@@ -49,6 +49,7 @@ void AuthDisplay::drawQRCode(const String& url) {
     
     int x = (m_display.width() - QR_CODE_WIDTH) / 2;
     int y = ((m_display.height() - QR_CODE_HEIGHT) / 2) - 40;
+    
 
     //m_display.drawBitmap(x,y, QR_CODE_BITMAP, QR_CODE_WIDTH, QR_CODE_HEIGHT, COLOR_BLACK);
 
@@ -64,8 +65,9 @@ void AuthDisplay::drawQRCode(const String& url) {
     int size = qrcode.size;
     int qrPixelSize = size * scale;
 
-    int xOffset = (300 - qrPixelSize) / 2;
-    int yOffset = (300 - qrPixelSize) / 2;
+    int xOffset = (m_display.width() - qrPixelSize) / 2;
+    int yOffset = (m_display.height() - qrPixelSize) / 2 - 30; // adjust vertically if needed
+
 
     for (int y = 0; y < size; y++) {
         for (int x = 0; x < size; x++) {

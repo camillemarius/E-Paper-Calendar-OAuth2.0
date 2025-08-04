@@ -8,9 +8,11 @@
 
 class CalendarSelector {
 public:
-    explicit CalendarSelector(GoogleCalendar& calendar);
+    using ServerStartedCallback = std::function<void(const String&)>;
 
+    explicit CalendarSelector(GoogleCalendar& calendar);
     void begin();
+    void onServerStarted(ServerStartedCallback cb);
 
     bool hasSelectedCalendars() const;
     const std::vector<String>& getSelectedCalendarIds() const;
@@ -22,6 +24,8 @@ private:
 
     std::vector<CalendarInfo> _availableCalendars;
     std::vector<String> _selectedCalendarIds;
+
+    ServerStartedCallback _serverStartedCallback = nullptr;
 
     void setupRoutes();
 

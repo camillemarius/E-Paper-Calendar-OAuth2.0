@@ -16,10 +16,10 @@
 WifiDisplay::WifiDisplay(EpaperDriver& display)
     : IDisplay(display) {}
 
-void WifiDisplay::show(const String& verificationUrl, const String& userCode) {
+void WifiDisplay::show(const String& url) {
     m_display.firstPage();
     do {
-        drawQRCode(verificationUrl);
+        drawQRCode(url);
     } while (m_display.nextPage());
 }
 

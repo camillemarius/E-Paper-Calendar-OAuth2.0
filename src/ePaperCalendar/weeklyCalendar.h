@@ -1,6 +1,7 @@
 #pragma once
 
 // Local
+#include "IDisplay.h"
 #include "color.h"
 
 // Internal Library
