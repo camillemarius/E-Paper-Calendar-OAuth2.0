@@ -12,7 +12,7 @@ public:
     WiFiHandler(int timeout);
 
     // Starts WiFi connection or AP mode if needed
-    void begin();
+    bool begin();
 
     // Register a callback function to be called when AP mode starts
     void onAccessPointStart(APCallback cb);

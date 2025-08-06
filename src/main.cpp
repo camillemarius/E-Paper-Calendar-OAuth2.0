@@ -13,13 +13,13 @@
 // Internal Libraries
 #include "credentials.h"
 #include "wifiHandler.h"
-#include "calendarSelector.h"
+#include "calendarSelector/calendarSelector.h"
 
 // Local UI
 #include "ePaperCalendar/weeklyCalendar.h"
-#include "ePaperCalendar/authDisplay.h"
-#include "ePaperCalendar/wifiDisplay.h"
-#include "ePaperCalendar/calendarSelectorDisplay.h"
+#include "ePaperCalendar/views/authDisplay.h"
+#include "ePaperCalendar/views/wifiDisplay.h"
+#include "ePaperCalendar/views/calendarSelectorDisplay.h"
 
 WiFiHandler wifiHandler(15);
 
@@ -45,7 +45,7 @@ void setup() {
 
   // Register Callbacks
   auth.onAuthPrompt([](const String& url, const String& code) {
-      authDisplay.show(url, code);
+      authDisplay.showWithUserCode(url, code);
   });
   wifiHandler.onAccessPointStart([&](const String& url) {
       wifiDisplay.show(url);
@@ -55,7 +55,10 @@ void setup() {
   });
 
   // Connect to Wifi
-  wifiHandler.begin();
+  if(!wifiHandler.begin()) {
+    LOG_ERROR("Kein Wifi Verfügbar");
+    return;
+  }
 
   // Schweizer Zeitzone
   configTzTime("CET-1CEST,M3.5.0,M10.5.0/3", "pool.ntp.org", "time.nist.gov");
@@ -84,6 +87,12 @@ void setup() {
     return;
   }
 
+  // TEST PURPOSE--------------------------------------------------------------
+  //calendarSelector.forceSelection();
+  //LOG_DEBUG("PROGRAMM END");
+  //return; 
+  // TEST PURPOSE--------------------------------------------------------------
+
 
   calendarSelector.begin();
 
@@ -110,4 +119,5 @@ void setup() {
 }
 
 void loop() {
+
 }

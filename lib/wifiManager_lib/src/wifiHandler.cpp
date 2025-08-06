@@ -9,10 +9,47 @@ void WiFiHandler::onAccessPointStart(APCallback cb) {
     userCallback = cb;
 }
 
-void WiFiHandler::begin() {
+
+bool WiFiHandler::begin() {
+    WiFiManager wifiManager;
+
+    wifiManager.setConnectTimeout(30); // Timeout für Verbindungsversuch
+
+    // Optional: Nur "WiFi"-Eintrag im Menü anzeigen
+    std::vector<const char*> menu = {"wifi"};
+    wifiManager.setMenu(menu);
+
+    // Callback beim Start des Access Points
+    wifiManager.setAPCallback([this](WiFiManager* wm) {
+        if (userCallback) {
+            String wifiQR = "WIFI:T:" + m_encryption + ";S:" + m_ssid + ";P:" + m_password + ";;";
+            userCallback(wifiQR);
+        }
+    });
+
+    // Öffnet direkt das Konfigurationsportal (WLAN-Auswahlseite)
+    wifiManager.startConfigPortal("E-Paper Kalender", "123456789");
+
+    if (WiFi.status() == WL_CONNECTED) {
+        LOG_INFO("WiFi connected.");
+        LOG_INFO("IP Address: %s", WiFi.localIP().toString().c_str());
+        return true;
+    } else {
+        LOG_ERROR("No WiFi connection established.");
+        return false;
+    }
+}
+
+
+/*void WiFiHandler::begin() {
     WiFiManager wifiManager;
 
     wifiManager.setConnectTimeout(30); // timeout in seconds
+
+    // Setzt das Konfigurationsmenü – nur der "WiFi"-Eintrag ist sichtbar
+    std::vector<const char*> menu = {"wifi"};
+    wifiManager.setMenu(menu);
+
     wifiManager.setAPCallback([this](WiFiManager* wm) {
         if (userCallback) {
             //String portalURL = "http://" + WiFi.softAPIP().toString();
@@ -30,4 +67,4 @@ void WiFiHandler::begin() {
 
     LOG_INFO("WiFi connected.");
     LOG_INFO("IP Address: %s", WiFi.localIP().toString().c_str());
-}
+}*/

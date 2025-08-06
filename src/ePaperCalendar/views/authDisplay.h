@@ -9,12 +9,17 @@
 #include <string>
 
 class AuthDisplay : public IDisplay{
+
 public:
     AuthDisplay(EpaperDriver& display);
-    void show(const String& verificationUrl, const String& userCode);
+    
+    // Spezialmethode NUR für Auth
+    void showWithUserCode(const String& qrData, const String& userCode);
 
-private:
-    void drawQRCode(const String& url);
+protected:
+    // Spezialmethode NUR für Auth
     void drawUserCode(const String& code);
-    void drawHeader();
+
+    String getTitle() const override;
+    String getDescription() const override;
 };

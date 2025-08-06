@@ -1,7 +1,7 @@
 #pragma once
 
 // Local
-#include "IDisplay.h"
+#include "views/IDisplay.h"
 #include "color.h"
 
 // Internal Library
@@ -22,50 +22,45 @@ public:
 private:
     EpaperDriver& display;
 
-    static constexpr int displayHeight = 480;
 
-
-    // Margins
+    // Außenabstände
     static constexpr int marginLeft   = 40;
     static constexpr int marginRight  = 5;
-    static constexpr int marginTop    = 30;
+    static constexpr int marginTop    = 10;
     static constexpr int marginBottom = 20;
 
-    // Calendar layout
+    // Layout
     static constexpr int originX = marginLeft;
-    static constexpr int originY = marginTop;
-
-    static constexpr int visibleStartHour = 7;
-    static constexpr int visibleEndHour = 18;
-    static constexpr int visibleHours = visibleEndHour - visibleStartHour;
 
     static constexpr int numberOfDays = 4;
-    static constexpr int calendarWidth = 800 - marginLeft - marginRight; 
+    static constexpr int calendarWidth = 800 - marginLeft - marginRight;
     static constexpr int dayColumnWidth = calendarWidth / numberOfDays;
 
-    static constexpr int baseHeaderHeight= 30;
+    // Kopfbereich
+    static constexpr int baseHeaderHeight = 30;
 
-    static constexpr int calendarHeight = displayHeight - marginTop- marginBottom - baseHeaderHeight;
-    static constexpr int hourHeight = calendarHeight/visibleHours;
-    static constexpr int minEventHeight = (hourHeight*  3) / 4;
+    // Default-Zeitbereich (Fallback)
+    static constexpr int visibleStartHour = 7;
+    static constexpr int visibleEndHour   = 18;
 
+    // Ereignisdarstellung
+    static constexpr int minEventHeight = 25;
     static constexpr int eventTextMarginX = 5;
     static constexpr int eventTextMarginY = 5;
-
     static constexpr int eventBoxMargin = 2;
     static constexpr int eventRadius = 4;
 
-
-    static constexpr int baseAllDayEventsHeight = 15;
-    static constexpr int allDayEventLineHeight = 15;
-
+    // All-Day Events
+    static constexpr int allDayEventLineHeight = 30;
 
 
 
-    void drawGrid(int headerHeight, int startHour, int endHour, int hourHeight);
-    void drawDayLabels(const std::vector<CalendarEvent>& events, const struct tm& weekStart);
-    void drawAllDayEvents(const std::vector<CalendarEvent>& events, int headerHeight, const struct tm& weekStart);
-    void drawTimedEvents(const std::vector<CalendarEvent>& events, int headerHeight, int startHour, int endHour, int hourHeight, const struct tm& weekStart);
+
+    void drawGrid(int y, int startHour, int endHour, int hourHeight);
+    void drawDayLabelsAndGrid(int y, int height,const std::vector<CalendarEvent>& events,const struct tm& weekStart,int startHour,int endHour,int hourHeight);
+    void drawDayLabels(int y, int height, const std::vector<CalendarEvent>& events, const struct tm& weekStart);
+    void drawAllDayEvents(int y, int height, const std::vector<CalendarEvent>& events, const struct tm& weekStart);
+    void drawTimedEvents( int y, int height, const std::vector<CalendarEvent>& events, int startHour, int endHour, int hourHeight, const struct tm& weekStart);
 
 
 
@@ -80,7 +75,7 @@ private:
     struct tm getWeekStartFromFirstEvent(const std::vector<CalendarEvent>& events);
     struct tm getTodayAsWeekStart();
     bool parseISODate(const char* iso, struct tm& tmOut);
-    void calculateTimeRange(const std::vector<CalendarEvent>& events, int dynamicHeaderHeight, int& outStartHour, int& outEndHour, int& outHourHeight);
+    void calculateTimeRange(int height, const std::vector<CalendarEvent>& events, int& outStartHour, int& outEndHour, int& outHourHeight);
 };
 
 

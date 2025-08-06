@@ -9,6 +9,7 @@ void CalendarSelector::begin() {
     loadSelectedCalendars();
 
     if (_selectedCalendarIds.empty()) {
+        LOG_DEBUG("selectedCalendarIds is empty");
         if (!_calendar.getAvailableCalendars(_availableCalendars)) {
             LOG_ERROR("Fehler beim Laden der Kalender");
             return;
@@ -31,6 +32,8 @@ void CalendarSelector::begin() {
             _server.handleClient();
             delay(10);
         }
+    } else{
+        LOG_DEBUG("selectedCalendarIds is not empty");
     }
 }
 
@@ -46,9 +49,18 @@ const std::vector<String>& CalendarSelector::getSelectedCalendarIds() const {
     return _selectedCalendarIds;
 }
 
+void CalendarSelector::forceSelection() {
+    _prefs.begin("calendar", false);
+    _prefs.remove("calendarIds");
+    _prefs.end();
+
+    _selectedCalendarIds.clear();
+    begin();  // startet Auswahl neu
+}
 void CalendarSelector::setupRoutes() {
     _server.on("/", HTTP_GET, [this]() { handleRoot(); });
     _server.on("/select", HTTP_POST, [this]() { handleSelect(); });
+    _server.on("/reset", HTTP_GET, [this]() { handleReset(); });
 }
 
 void CalendarSelector::handleRoot() {
@@ -85,18 +97,33 @@ void CalendarSelector::handleSelect() {
     }
 }
 
+void CalendarSelector::handleReset() {
+    _prefs.begin("calendar", false);
+    _prefs.remove("calendarIds");
+    _prefs.end();
+    
+    _selectedCalendarIds.clear();
+    _server.send(200, "text/html", "<p>Auswahl gelöscht. Bitte Gerät neu starten.</p>");
+}
+
+
 void CalendarSelector::saveSelectedCalendars() {
+    _prefs.begin("calendar", false);
     String csv;
     for (const auto& id : _selectedCalendarIds) {
         if (!csv.isEmpty()) csv += ",";
         csv += id;
     }
     _prefs.putString("calendarIds", csv);
+    _prefs.end();
 }
 
 void CalendarSelector::loadSelectedCalendars() {
+    _prefs.begin("calendar", false);
     _selectedCalendarIds.clear();
     String csv = _prefs.getString("calendarIds", "");
+    LOG_DEBUG("Loaded calendarIds: '%s'", csv.c_str());
+
     int start = 0;
     int commaIndex;
     while ((commaIndex = csv.indexOf(',', start)) != -1) {
@@ -106,4 +133,6 @@ void CalendarSelector::loadSelectedCalendars() {
     if (start < csv.length()) {
         _selectedCalendarIds.push_back(csv.substring(start));
     }
+    _prefs.end();
 }
+

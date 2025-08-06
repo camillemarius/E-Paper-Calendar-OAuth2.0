@@ -11,10 +11,8 @@
 class CalendarSelectorDisplay : public IDisplay{
 public:
     CalendarSelectorDisplay(EpaperDriver& display);
-    void show(const String& url);
 
-private:
-    void drawQRCode(const String& url);
-    void drawUserCode(const String& code);
-    void drawHeader();
+protected:
+    String getTitle() const override;
+    String getDescription() const override;
 };

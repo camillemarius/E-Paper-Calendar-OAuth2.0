@@ -13,6 +13,7 @@ public:
     explicit CalendarSelector(GoogleCalendar& calendar);
     void begin();
     void onServerStarted(ServerStartedCallback cb);
+    void forceSelection();
 
     bool hasSelectedCalendars() const;
     const std::vector<String>& getSelectedCalendarIds() const;
@@ -31,6 +32,7 @@ private:
 
     void handleRoot();
     void handleSelect();
+    void handleReset();
 
     void saveSelectedCalendars();
     void loadSelectedCalendars();
