@@ -39,7 +39,7 @@ public:
     void print(const char* text) override;
     void printAt(int16_t x, int16_t y, const char* text) override;
     virtual void getTextBounds(const String &str, int16_t x, int16_t y, int16_t *x1, int16_t *y1, uint16_t *w, uint16_t *h) override;
-    void drawTextInRoundedRect(int16_t x, int16_t y, int16_t w, int16_t h, const String& text, uint16_t bgColor, uint16_t textColor, int16_t radius = 5, int16_t padding_left = 7, int16_t padding_top = 7);
+    void drawTextInRoundedRect(int16_t x, int16_t y, int16_t w, int16_t h, const String& text, uint16_t bgColor, uint16_t textColor, int16_t radius = 5, int16_t padding_left = 7, int16_t padding_top = 7, uint16_t borderColor = 0);
 
     // Display Info
     int16_t width() override;

@@ -20,8 +20,12 @@ String CalendarSelectorDisplay::getTitle() const {
 }
 
 String CalendarSelectorDisplay::getDescription() const {
-    return "Lege anhand der Liste fest welche\n"
-            "Google Kalender in der Zukunft\n"
-            "hier angezeigt werden sollen.\n\n"
-            "Scanne dazu den QR-Code.";
+    return "Lege anhand der Liste fest, welche \n"
+           "Google Kalender in der Zukunft\n"
+           "hier angezeigt werden sollen.\n\n"
+           "Dein Telefon, mit dem du den\n"
+           "QR-Code scannst, muss dabei mit\n"
+           "dem selben WLAN verbunden sein\n"
+           "wie der E-Paper-Kalender.\n\n"
+           "Scanne jetzt den QR-Code.";
 }

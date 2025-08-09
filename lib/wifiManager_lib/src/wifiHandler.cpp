@@ -16,8 +16,8 @@ bool WiFiHandler::begin() {
     wifiManager.setConnectTimeout(30); // Timeout für Verbindungsversuch
 
     // Optional: Nur "WiFi"-Eintrag im Menü anzeigen
-    std::vector<const char*> menu = {"wifi"};
-    wifiManager.setMenu(menu);
+    //std::vector<const char*> menu = {"wifi"};
+    //wifiManager.setMenu(menu);
 
     // Callback beim Start des Access Points
     wifiManager.setAPCallback([this](WiFiManager* wm) {
@@ -28,7 +28,8 @@ bool WiFiHandler::begin() {
     });
 
     // Öffnet direkt das Konfigurationsportal (WLAN-Auswahlseite)
-    wifiManager.startConfigPortal("E-Paper Kalender", "123456789");
+    //wifiManager.startConfigPortal("E-Paper Kalender", "123456789");
+    wifiManager.autoConnect("E-Paper Kalender", "123456789");
 
     if (WiFi.status() == WL_CONNECTED) {
         LOG_INFO("WiFi connected.");

@@ -31,7 +31,8 @@ void WeeklyCalendar::drawCalendar(const std::vector<CalendarEvent>& events) {
     todayTm.tm_min = 0;
     todayTm.tm_sec = 0;
     time_t today = mktime(&todayTm);
-    time_t cutoff = today + 4 * 86400; // heute + 3 Tage
+    constexpr int SECONDS_PER_DAY = 86400;
+    time_t cutoff = today + 4 * SECONDS_PER_DAY; // heute + 3 Tage
 
     // Schritt 2: Filtere Events, die zumindest teilweise im Zeitraum [heute, heute+3] liegen
     std::vector<CalendarEvent> filteredEvents;
@@ -73,10 +74,6 @@ void WeeklyCalendar::drawCalendar(const std::vector<CalendarEvent>& events) {
     // Schritt 3: Berechne Layout-Parameter basierend auf den gefilterten Events
     int allDayLines = calculateAllDayEventLines(filteredEvents, weekStart);
     int dynamicHeaderHeight = allDayLines * allDayEventLineHeight;
-    LOG_DEBUG("dynamicHeaderHeight: %d", dynamicHeaderHeight);
-
-    
-
 
     // Grid Layout Definition
     int headerY = marginTop;
@@ -106,7 +103,6 @@ void WeeklyCalendar::drawCalendar(const std::vector<CalendarEvent>& events) {
 }
 
 void WeeklyCalendar::drawDayLabelsAndGrid(int y, int height, const std::vector<CalendarEvent>& events, const struct tm& weekStart, int startHour, int endHour, int hourHeight) {
-    LOG_DEBUG("drawDayLabelsAndGrid");
 
     // ---------- DAY LABELS ----------
     display.setFont(&FreeSansBold9pt7b);
@@ -166,8 +162,13 @@ void WeeklyCalendar::drawGrid(int y, int startHour, int endHour, int hourHeight)
     }
 
     for (int h = startHour; h <= endHour; ++h) {
+        
+        
+        
         int lineY = y + (h - startHour) * hourHeight;
-        display.drawLine(originX, lineY, originX + calendarWidth, lineY, COLOR_BLACK);
+        if ((h - startHour) % 2 != 1)  {
+            display.drawLine(originX, lineY, originX + calendarWidth, lineY, COLOR_BLACK);
+        }
 
         display.setCursor(originX - 28, lineY + 5);
         display.setFont(&FreeSans9pt7b);
@@ -363,8 +364,8 @@ void WeeklyCalendar::calculateTimeRange(int height, const std::vector<CalendarEv
     for (const auto& event : events) {
         if (event.isAllDay) continue;
 
-        int start = getHour(event.startISO);
-        int end = getHour(event.endISO);
+        int start = event.startHour;//getHour(event.startISO);
+        int end = event.endHour; //getHour(event.endISO);
         if (start < minHour) minHour = start;
         if (end > maxHour) maxHour = end;
     }
@@ -381,7 +382,6 @@ void WeeklyCalendar::calculateTimeRange(int height, const std::vector<CalendarEv
 
     int hoursVisible = maxHour - minHour;
     int hourH = height / hoursVisible;
-    LOG_DEBUG("hourH: %d", hourH);
 
     // Optional: Mindesthöhe pro Stunde setzen
     if (hourH < minEventHeight) {
@@ -389,9 +389,6 @@ void WeeklyCalendar::calculateTimeRange(int height, const std::vector<CalendarEv
         hourH = minEventHeight;
         int maxHoursFit = height / hourH;
         maxHour = minHour + maxHoursFit;
-        LOG_DEBUG("maxHoursFit: %d", maxHoursFit);
-        LOG_DEBUG("maxHour: %d", maxHour);
-        LOG_DEBUG("hourH: %d", maxHour);
     }
 
     outStartHour = minHour;
@@ -413,8 +410,6 @@ void WeeklyCalendar::drawAllDayEvents(int y, int height, const std::vector<Calen
 
     int lineHeight = height / allDayLines;
     
-    LOG_DEBUG("allDayLines: %d", allDayLines);
-    LOG_DEBUG("headerHeight: %d", lineHeight);
 
     // Linienverwaltung: Jede Linie hält eine Liste von Intervallen (Start- und Endtag) für Events, die dort gezeichnet werden
     std::vector<std::vector<std::pair<int,int>>> lines;
@@ -453,9 +448,21 @@ void WeeklyCalendar::drawAllDayEvents(int y, int height, const std::vector<Calen
         int yPos = y + lineIndex * lineHeight + eventBoxMargin;
         int h = lineHeight - 2 * eventBoxMargin;
 
+        // Farben je nach Kalender anpassen
+        uint16_t bgColor = COLOR_BLACK;   // Standard Hintergrundfarbe
+        uint16_t ftColor = COLOR_WHITE;   // Standard Schriftfarbe
+        uint16_t brColor = COLOR_BLACK;   // Standart Randfarbe
+
+        if (event.calendarId == "8132566a2c345c1b5f411b936db874e78af0907f3dd20fccf7b59f7198459b4a@group.calendar.google.com") {
+            bgColor = COLOR_WHITE;
+            ftColor = COLOR_BLACK;
+            brColor = COLOR_BLACK;
+        }
+
         display.drawTextInRoundedRect(x, yPos, w, h, event.title,
-                                      COLOR_BLACK, COLOR_WHITE,
-                                      eventRadius, eventTextMarginX, eventTextMarginY);
+                                      bgColor, ftColor,
+                                      eventRadius, eventTextMarginX, eventTextMarginY, 
+                                      brColor);
     }
 }
 
@@ -469,18 +476,18 @@ void WeeklyCalendar::drawTimedEvents(int y, int height, const std::vector<Calend
         int day = getDayOffsetFromWeekStart(event.startISO, localTime);
         if (day < 0 || day >= numberOfDays) continue;
 
-        int startH = event.startHour >= 0 ? event.startHour : getHour(event.startISO);
-        int endH   = event.endHour   >= 0 ? event.endHour   : getHour(event.endISO);
-        int startMin = getMinute(event.startISO);
-        int endMin   = getMinute(event.endISO);
+        int startH = event.startHour;// getHour(event.startISO);
+        int endH   = event.endHour;//getHour(event.endISO);
+        int startMin = event.startMinute; //getMinute(event.startISO);
+        int endMin   = event.endMinute; //getMinute(event.endISO);
 
         if (endH <= startHour || startH >= endHour) continue;
 
         float startTime = std::max((float)startHour, startH + startMin / 60.0f);
         float endTime   = std::min((float)endHour,   endH + endMin   / 60.0f);
 
-        int yStart = y + static_cast<int>((startTime - startHour) * hourHeight - eventBoxMargin);
-        int yEnd   = y + static_cast<int>((endTime   - startHour) * hourHeight + eventBoxMargin);
+        int yStart = y + static_cast<int>((startTime - startHour) * hourHeight + eventBoxMargin);
+        int yEnd   = y + static_cast<int>((endTime   - startHour) * hourHeight - eventBoxMargin);
 
         int x = originX + day * dayColumnWidth + eventBoxMargin;
         int w = dayColumnWidth - 2 * eventBoxMargin;
@@ -488,8 +495,20 @@ void WeeklyCalendar::drawTimedEvents(int y, int height, const std::vector<Calend
 
         if (h < minEventHeight) h = minEventHeight;
 
+        // Farben je nach Kalender anpassen
+        uint16_t bgColor = COLOR_BLACK;   // Standard Hintergrundfarbe
+        uint16_t ftColor = COLOR_WHITE;   // Standard Schriftfarbe
+        uint16_t brColor = COLOR_BLACK;   // Standart Randfarbe
+
+        if (event.calendarId == "8132566a2c345c1b5f411b936db874e78af0907f3dd20fccf7b59f7198459b4a@group.calendar.google.com") {
+            bgColor = COLOR_WHITE;
+            ftColor = COLOR_BLACK;
+            brColor = COLOR_BLACK;
+        }
+
         display.drawTextInRoundedRect(x, yStart, w, h, event.title,
-                                      COLOR_BLACK, COLOR_WHITE,
-                                      eventRadius, eventTextMarginX, eventTextMarginY);
+                                      bgColor, ftColor,
+                                      eventRadius, eventTextMarginX, eventTextMarginY, 
+                                      brColor);
     }
 }

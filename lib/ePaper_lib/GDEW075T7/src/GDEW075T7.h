@@ -4,9 +4,9 @@
 #include <SPI.h>
 #include "ePaperDriver.h"
 
-class FPC_8612 : public EpaperDriver {
+class GDEW075T7 : public EpaperDriver {
 public:             
-    FPC_8612(uint8_t cs = 15, uint8_t dc = 27, uint8_t rst = 26, uint8_t busy = 25,
+    GDEW075T7(uint8_t cs = 15, uint8_t dc = 27, uint8_t rst = 26, uint8_t busy = 25,
              uint8_t sck = 13, uint8_t miso = 12, uint8_t mosi = 14, uint8_t ss = 15);
 
     void init() override;

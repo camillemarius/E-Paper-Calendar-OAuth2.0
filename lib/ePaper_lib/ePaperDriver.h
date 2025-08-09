@@ -36,7 +36,7 @@ public:
     virtual void print(const char* text) = 0;
     virtual void printAt(int16_t x, int16_t y, const char* text) = 0;
     virtual void getTextBounds(const String &str, int16_t x, int16_t y, int16_t *x1, int16_t *y1, uint16_t *w, uint16_t *h);
-    virtual void drawTextInRoundedRect(int16_t x, int16_t y, int16_t w, int16_t h, const String& text, uint16_t bgColor, uint16_t textColor, int16_t radius, int16_t padding_left, int16_t padding_top);
+    virtual void drawTextInRoundedRect(int16_t x, int16_t y, int16_t w, int16_t h, const String& text, uint16_t bgColor, uint16_t textColor, int16_t radius, int16_t padding_left, int16_t padding_top, uint16_t borderColor);
     
 
     // Display Info

@@ -9,6 +9,7 @@
 
 // Unified calendar event structure
 struct CalendarEvent {
+    String calendarId;
     String title;
     String startISO;   
     String endISO;
@@ -16,16 +17,18 @@ struct CalendarEvent {
     int day = -1;           // 0 = Monday, 6 = Sunday
     int startHour = 0;
     int endHour = 0;
+    int startMinute = 0;
+    int endMinute = 0;
     bool isAllDay = false;
 
     // optionally add calendarId, color, etc.
 
     CalendarEvent() = default;
     
-    CalendarEvent(String t, String s, String e,
-                  int d, int sh, int eh, bool allDay)
-        : title(std::move(t)), startISO(std::move(s)), endISO(std::move(e)),
-          day(d), startHour(sh), endHour(eh), isAllDay(allDay) {}
+    CalendarEvent(String _calendarId, String _titel, String _startISO, String _endISO,
+                  int _day, int _startHour, int _endHour, int _startMinute, int _endMinute, bool _isAllDay)
+        : calendarId(_calendarId), title(std::move(_titel)), startISO(std::move(_startISO)), endISO(std::move(_endISO)),
+          day(_day), startHour(_startHour), endHour(_endHour), startMinute(_startMinute), endMinute(_endMinute), isAllDay(_isAllDay) {}
 };
 
 struct CalendarInfo {

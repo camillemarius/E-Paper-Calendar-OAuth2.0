@@ -23,10 +23,15 @@ String WifiDisplay::getTitle() const {
 }
 
 String WifiDisplay::getDescription() const {
-    return "Verbinde dich mit dem E-Paper Kalender\n"
-           "indem du den QR-Code scannst.\n"
-           "Beim Verbinden weist er dich darauf hin,\n"
-           "dass du dich anmelden musst.\n"
-           "Folge dem Link und verbinde dich über\n"
-           "den Browser mit deinem WLAN.";
+    return "Starte die Kamera-App auf deinem\n"
+           "Handy und scanne den QR-Code\n"
+           "des E-Paper Kalenders.\n"
+           "Der QR-Code verbindet dein Handy\n"
+           "automatisch mit dem Kalender.\n"
+           "Dein Handy zeigt dir, dass du\n"
+           "dich Autorisieren musst.\n" 
+           "Tippe auf das Pop-Up und verbinde\n"
+           "dich im Browser mit deinem WLAN,\n"
+           "indem du den WLAN-Namen auswählst\n"
+           "und das Passwort eingibst.";
 }

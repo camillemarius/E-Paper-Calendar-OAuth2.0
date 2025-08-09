@@ -1,7 +1,6 @@
 
 // System
 #include <WiFi.h>
-#include <time.h>
 
 // External Libraries
 #include <qrcode.h>
@@ -23,7 +22,11 @@
 
 WiFiHandler wifiHandler(15);
 
-FPC_8612 epaperDisplay(15, 27, 26, 25, 13, 12, 14, 15);
+#ifdef E_PAPERDISPLAY_FPC8612
+    FPC_8612 epaperDisplay(15, 27, 26, 25, 13, 12, 14, 15);
+#elif defined(E_PAPERDISPLAY_GDWE075T7)
+    GDWE075T7 epaperDisplay(15, 27, 26, 25, 13, 12, 14, 15);
+#endif
 
 GoogleAuth auth(_clientId, _clientSecret, _scope);
 GoogleCalendar calendar(auth);
@@ -33,6 +36,36 @@ WeeklyCalendar weeklyCalendar(epaperDisplay);
 AuthDisplay authDisplay(epaperDisplay);
 WifiDisplay wifiDisplay(epaperDisplay);
 CalendarSelectorDisplay calendarSelectorDisplay(epaperDisplay);
+
+void sleepUntilOneAM() {
+    time_t now = time(nullptr);
+    struct tm timeinfo;
+    localtime_r(&now, &timeinfo);
+
+    // Aktuelle Zeit debuggen
+    LOG_DEBUG("Current local time before sleep: %04d-%02d-%02d %02d:%02d:%02d",
+        timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday,
+        timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+
+    // Berechne Zeitpunkt der nächsten 1 Uhr nachts
+    timeinfo.tm_hour = 1;
+    timeinfo.tm_min = 0;
+    timeinfo.tm_sec = 0;
+
+    time_t wakeupTime = mktime(&timeinfo);
+    if (wakeupTime <= now) {
+        // Wenn 1 Uhr heute schon vorbei ist, auf morgen 1 Uhr setzen
+        wakeupTime += 24 * 3600; 
+    }
+
+    time_t sleepSeconds = wakeupTime - now;
+
+    LOG_DEBUG("Going to sleep for %ld seconds until 1 AM", sleepSeconds);
+
+    // Tiefschlaf starten (in Mikrosekunden)
+    esp_sleep_enable_timer_wakeup((uint64_t)sleepSeconds * 1000000ULL);
+    esp_deep_sleep_start();
+}
 
 void setup() {
 
@@ -61,18 +94,31 @@ void setup() {
   }
 
   // Schweizer Zeitzone
-  configTzTime("CET-1CEST,M3.5.0,M10.5.0/3", "pool.ntp.org", "time.nist.gov");
+  configTzTime("CET-1CEST,M3.5.0/2,M10.5.0/3", 
+              "pool.ntp.org", "time.nist.gov");
+
+  //WORKING
+  //configTime(0, 0, "pool.ntp.org", "time.nist.gov"); // Nur NTP
+  //setenv("TZ", "CET-1CEST,M3.5.0/2,M10.5.0/3", 1);   // Schweizer Sommerzeit
+  //tzset(); // WICHTIG
+  //WORKING
+
+  // Warten auf NTP Sync
   while (time(nullptr) < 100000) {
     delay(100);
   }
-  LOG_DEBUG("Time after sync: %ld", time(nullptr));
-  time_t now = time(nullptr);
-  struct tm *local = localtime(&now);
-  struct tm *utc = gmtime(&now);
-  //LOG_DEBUG("Now timestamp: %ld", now);
-  //LOG_DEBUG("Local time: %d-%d-%d %d:%d:%d", local->tm_year + 1900, local->tm_mon + 1, local->tm_mday, local->tm_hour, local->tm_min, local->tm_sec);
-  //LOG_DEBUG("UTC time: %d-%d-%d %d:%d:%d", utc->tm_year + 1900, utc->tm_mon + 1, utc->tm_mday, utc->tm_hour, utc->tm_min, utc->tm_sec);
 
+  time_t now = time(nullptr);
+
+  struct tm local;
+  localtime_r(&now, &local);
+  LOG_DEBUG("Local time: %04d-%02d-%02d %02d:%02d:%02d\n",
+                local.tm_year + 1900, local.tm_mon + 1, local.tm_mday,
+                local.tm_hour, local.tm_min, local.tm_sec);
+
+  //utcStringtoLocal("2025-08-09T12:34:56Z");
+  //utcStringtoLocal("2025-08-10T13:45:00Z");
+  //utcStringtoLocal("2025-08-09T16:00:00+02:00");
 
 
 
@@ -114,8 +160,9 @@ void setup() {
     weeklyCalendar.drawCalendar(allEvents);
   }
   
-  uint64_t sleepTime = 8ULL * 60ULL * 60ULL * 1000000ULL;
-  ESP.deepSleep(sleepTime);
+  //uint64_t sleepTime = 8ULL * 60ULL * 60ULL * 1000000ULL;
+  //ESP.deepSleep(sleepTime);
+  sleepUntilOneAM();
 }
 
 void loop() {

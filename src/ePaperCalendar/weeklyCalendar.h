@@ -38,10 +38,15 @@ private:
 
     // Kopfbereich
     static constexpr int baseHeaderHeight = 30;
-
-    // Default-Zeitbereich (Fallback)
+    static constexpr int allDayEventLineHeight = 30;
+    static constexpr int headerHeight = baseHeaderHeight + allDayEventLineHeight;
+    
+    // Zeitevents
     static constexpr int visibleStartHour = 7;
     static constexpr int visibleEndHour   = 18;
+    static constexpr int defaultHourHeight = 50; 
+    static constexpr int maxAllDayEventLines = 5; 
+    static constexpr int gridLineWidth = 1;
 
     // Ereignisdarstellung
     static constexpr int minEventHeight = 25;
@@ -50,8 +55,7 @@ private:
     static constexpr int eventBoxMargin = 2;
     static constexpr int eventRadius = 4;
 
-    // All-Day Events
-    static constexpr int allDayEventLineHeight = 30;
+
 
 
 

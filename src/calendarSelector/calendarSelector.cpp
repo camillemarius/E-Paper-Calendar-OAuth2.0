@@ -90,7 +90,7 @@ void CalendarSelector::handleSelect() {
         }
         saveSelectedCalendars();
 
-        _server.send(200, "text/html", "<h3>Kalender gespeichert.</h3><p>Bitte Gerät neu starten.</p>");
+        _server.send(200, "text/html", "<h3>Kalender gespeichert.</h3><p>Diese Seite kann nun geschlossen werden.</p>");
         delay(2000);
     } else {
         _server.send(400, "text/plain", "Fehlender Parameter: calendarId");
@@ -103,7 +103,7 @@ void CalendarSelector::handleReset() {
     _prefs.end();
     
     _selectedCalendarIds.clear();
-    _server.send(200, "text/html", "<p>Auswahl gelöscht. Bitte Gerät neu starten.</p>");
+    _server.send(200, "text/html", "<p>Diese Seite kann nun geschlossen werden.</p>");
 }
 
 
