@@ -8,3 +8,6 @@
 # Credentials or sensitive files
 .credentials.cpp
 lib/googleAuth_lib/src/credentials.cpp
+
+# Ignore all files in views
+src/ePaperGalery/views/*
