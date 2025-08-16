@@ -1,7 +1,7 @@
 #pragma once
 
 // Local
-
+#include <Arduino.h>
 // Internal Linbrary
 
 // External Library
@@ -14,7 +14,8 @@ struct CalendarEvent {
     String startISO;   
     String endISO;
 
-    int day = -1;           // 0 = Monday, 6 = Sunday
+    int startDay = 0;           // 0 = Monday, 6 = Sunday
+    int endDay = 0;           // 0 = Monday, 6 = Sunday
     int startHour = 0;
     int endHour = 0;
     int startMinute = 0;
@@ -26,9 +27,9 @@ struct CalendarEvent {
     CalendarEvent() = default;
     
     CalendarEvent(String _calendarId, String _titel, String _startISO, String _endISO,
-                  int _day, int _startHour, int _endHour, int _startMinute, int _endMinute, bool _isAllDay)
+                  int _startday, int _endDay, int _startHour, int _endHour, int _startMinute, int _endMinute, bool _isAllDay)
         : calendarId(_calendarId), title(std::move(_titel)), startISO(std::move(_startISO)), endISO(std::move(_endISO)),
-          day(_day), startHour(_startHour), endHour(_endHour), startMinute(_startMinute), endMinute(_endMinute), isAllDay(_isAllDay) {}
+          startDay(_startday),endDay(_endDay), startHour(_startHour), endHour(_endHour), startMinute(_startMinute), endMinute(_endMinute), isAllDay(_isAllDay) {}
 };
 
 struct CalendarInfo {

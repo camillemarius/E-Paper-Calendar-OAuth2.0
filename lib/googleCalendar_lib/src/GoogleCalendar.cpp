@@ -113,7 +113,7 @@ bool GoogleCalendar::getEvents(const String& calendarId, std::vector<CalendarEve
 
     // Startzeitpunkt heute (lokale Zeit) als ISO für Google
     String startOfToday = getISO8601TimeTodayStart();
-    LOG_DEBUG("Abfrage ab: %s", startOfToday.c_str());
+    //LOG_DEBUG("Abfrage ab: %s", startOfToday.c_str());
 
     String url = "https://www.googleapis.com/calendar/v3/calendars/" + String(calendarId) +
                  "/events?maxResults=10&orderBy=startTime&singleEvents=true&timeMin=" + String(startOfToday);
@@ -143,7 +143,7 @@ bool GoogleCalendar::getEvents(const String& calendarId, std::vector<CalendarEve
     events.clear();
 
     for (JsonObject item : items) {
-        LOG_DEBUG("calendarId: %s", calendarId.c_str());
+        //LOG_DEBUG("calendarId: %s", calendarId.c_str());
 
         String title = item["summary"] | "Ohne Titel";
 
@@ -162,7 +162,7 @@ bool GoogleCalendar::getEvents(const String& calendarId, std::vector<CalendarEve
 
         bool allDay = isAllDayEvent(startISO, endISO);
 
-        int day = -1, startHour = 0, endHour = 0, startMinute = 0, endMinute = 0;
+        int startDay = -1, endDay = -1, startHour = 0, endHour = 0, startMinute = 0, endMinute = 0;
         if (!allDay) {
             // hier wandeln wir in lokale Zeit um
             time_t t_start = utcStringtoLocal(startISO.c_str());
@@ -172,11 +172,15 @@ bool GoogleCalendar::getEvents(const String& calendarId, std::vector<CalendarEve
             localtime_r(&t_start, &tm_start);
             localtime_r(&t_end,   &tm_end);
 
-            day = tm_start.tm_wday; // Sonntag=0, Montag=1, etc.
+            startDay = tm_start.tm_wday; // Sonntag=0, Montag=1, etc.
+            endDay = tm_end.tm_wday; // Sonntag=0, Montag=1, etc.
             startHour = tm_start.tm_hour;
             endHour   = tm_end.tm_hour;
             startMinute = tm_start.tm_min;
             endMinute   = tm_end.tm_min;
+
+            //LOG_DEBUG("Event '%s': startDay=%d, endDay=%d, allDay=%s", 
+                     //title.c_str(), startDay, endDay, allDay ? "true" : "false");
 
             /*LOG_DEBUG("event: %s, startLocal: %04d-%02d-%02d %02d:%02d:%02d, endLocal: %04d-%02d-%02d %02d:%02d:%02d",
                       title.c_str(),
@@ -186,7 +190,7 @@ bool GoogleCalendar::getEvents(const String& calendarId, std::vector<CalendarEve
                       tm_end.tm_hour, tm_end.tm_min, tm_end.tm_sec);*/
         }
 
-        events.emplace_back(calendarId, title, startISO, endISO, day, startHour, endHour, startMinute, endMinute, allDay);
+        events.emplace_back(calendarId, title, startISO, endISO, startDay, endDay, startHour, endHour, startMinute, endMinute, allDay);
     }
 
     LOG_INFO("Kalendereinträge geladen: %d", events.size());

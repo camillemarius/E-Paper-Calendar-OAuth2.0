@@ -12,25 +12,25 @@
 // Internal Libraries
 #include "credentials.h"
 #include "wifiHandler.h"
-#include "calendarSelector/calendarSelector.h"
 
 // Local UI
-#include "ePaperCalendar/weeklyCalendar.h"
-#include "ePaperCalendar/views/authDisplay.h"
-#include "ePaperCalendar/views/wifiDisplay.h"
-#include "ePaperCalendar/views/calendarSelectorDisplay.h"
+#include "CalendarConfigurator/CalendarConfigurator.h"
+#include "views/weeklyCalendar.h"
+#include "views/authDisplay.h"
+#include "views/wifiDisplay.h"
+#include "views/calendarSelectorDisplay.h"
 
 WiFiHandler wifiHandler(15);
 
-#ifdef E_PAPERDISPLAY_FPC8612
+#ifdef E_PAPER_CALENDAR_FPC8612
     FPC_8612 epaperDisplay(15, 27, 26, 25, 13, 12, 14, 15);
-#elif defined(E_PAPERDISPLAY_GDWE075T7)
+#elif defined(E_PAPER_CALENDAR_GDWE075T7)
     GDWE075T7 epaperDisplay(15, 27, 26, 25, 13, 12, 14, 15);
 #endif
 
 GoogleAuth auth(_clientId, _clientSecret, _scope);
 GoogleCalendar calendar(auth);
-CalendarSelector calendarSelector(calendar);
+CalendarConfigurator calendarConfigurator(calendar);
 
 WeeklyCalendar weeklyCalendar(epaperDisplay);
 AuthDisplay authDisplay(epaperDisplay);
@@ -62,7 +62,6 @@ void sleepUntilOneAM() {
 
     LOG_DEBUG("Going to sleep for %ld seconds until 1 AM", sleepSeconds);
 
-    // Tiefschlaf starten (in Mikrosekunden)
     esp_sleep_enable_timer_wakeup((uint64_t)sleepSeconds * 1000000ULL);
     esp_deep_sleep_start();
 }
@@ -83,7 +82,7 @@ void setup() {
   wifiHandler.onAccessPointStart([&](const String& url) {
       wifiDisplay.show(url);
   });
-  calendarSelector.onServerStarted([&](const String& url) {
+  calendarConfigurator.onServerStarted([&](const String& url) {
     calendarSelectorDisplay.show(url);
   });
 
@@ -116,12 +115,6 @@ void setup() {
                 local.tm_year + 1900, local.tm_mon + 1, local.tm_mday,
                 local.tm_hour, local.tm_min, local.tm_sec);
 
-  //utcStringtoLocal("2025-08-09T12:34:56Z");
-  //utcStringtoLocal("2025-08-10T13:45:00Z");
-  //utcStringtoLocal("2025-08-09T16:00:00+02:00");
-
-
-
   // Initialize Google Calendar
   if(!auth.initialize()) {
     LOG_ERROR("Token Storage nicht initialisiert");
@@ -133,20 +126,13 @@ void setup() {
     return;
   }
 
-  // TEST PURPOSE--------------------------------------------------------------
-  //calendarSelector.forceSelection();
-  //LOG_DEBUG("PROGRAMM END");
-  //return; 
-  // TEST PURPOSE--------------------------------------------------------------
+  calendarConfigurator.begin();
 
-
-  calendarSelector.begin();
-
-  if (calendarSelector.hasSelectedCalendars()) {
+  if (calendarConfigurator.hasSelectedCalendars()) {
     std::vector<CalendarEvent> allEvents;
 
     // Für jeden ausgewählten Kalender alle Events abrufen und sammeln
-    for (const auto& calendarId : calendarSelector.getSelectedCalendarIds()) {
+    for (const auto& calendarId : calendarConfigurator.getSelectedCalendarIds()) {
         std::vector<CalendarEvent> events;
         if (calendar.getEvents(calendarId, events)) {
             for (const auto& c : events) {

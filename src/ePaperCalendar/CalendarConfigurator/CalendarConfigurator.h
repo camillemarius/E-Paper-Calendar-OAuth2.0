@@ -6,11 +6,11 @@
 #include <WebServer.h>
 #include "GoogleCalendar.h"
 
-class CalendarSelector {
+class CalendarConfigurator {
 public:
     using ServerStartedCallback = std::function<void(const String&)>;
 
-    explicit CalendarSelector(GoogleCalendar& calendar);
+    explicit CalendarConfigurator(GoogleCalendar& calendar);
     void begin();
     void onServerStarted(ServerStartedCallback cb);
     void forceSelection();

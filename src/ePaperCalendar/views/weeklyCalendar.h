@@ -1,7 +1,7 @@
 #pragma once
 
 // Local
-#include "views/IDisplay.h"
+#include "IDisplay.h"
 #include "color.h"
 
 // Internal Library
@@ -51,7 +51,7 @@ private:
     // Ereignisdarstellung
     static constexpr int minEventHeight = 25;
     static constexpr int eventTextMarginX = 5;
-    static constexpr int eventTextMarginY = 5;
+    static constexpr int eventTextMarginY = 2;
     static constexpr int eventBoxMargin = 2;
     static constexpr int eventRadius = 4;
 
@@ -67,19 +67,18 @@ private:
     void drawTimedEvents( int y, int height, const std::vector<CalendarEvent>& events, int startHour, int endHour, int hourHeight, const struct tm& weekStart);
 
 
-
-    time_t timegm_portable(struct tm *tm);
-    int getDayOfWeek(const String& isoString);
-    int getHour(const String& isoString);
-    int getMinute(const String& iso);
-    int calculateAllDayEventLines(const std::vector<CalendarEvent>& events, const struct tm& weekStart);
-    int getDayOffsetFromWeekStart(const String& iso, const struct tm& weekStart);
-    struct tm getWeekStart(const struct tm& someDate);
-    struct tm getWeekStartFromFirstEvent(const struct tm& eventDate);
-    struct tm getWeekStartFromFirstEvent(const std::vector<CalendarEvent>& events);
-    struct tm getTodayAsWeekStart();
-    bool parseISODate(const char* iso, struct tm& tmOut);
-    void calculateTimeRange(int height, const std::vector<CalendarEvent>& events, int& outStartHour, int& outEndHour, int& outHourHeight);
+    //time_t timegm_portable(struct tm *tm);
+    //int getDayOfWeek(const String& isoString);
+    //int getHour(const String& isoString);
+    //int getMinute(const String& iso);
+    //int calculateAllDayEventLines(const std::vector<CalendarEvent>& events, const struct tm& weekStart);
+    //int getDayOffsetFromWeekStart(const String& iso, const struct tm& weekStart);
+    //struct tm getWeekStart(const struct tm& someDate);
+    //struct tm getWeekStartFromFirstEvent(const struct tm& eventDate);
+    //struct tm getWeekStartFromFirstEvent(const std::vector<CalendarEvent>& events);
+    //struct tm getTodayAsWeekStart();
+    //bool parseISODate(const char* iso, struct tm& tmOut);
+    //void calculateTimeRange(int height, const std::vector<CalendarEvent>& events, int& outStartHour, int& outEndHour, int& outHourHeight);
 };
 
 

@@ -1,0 +1,165 @@
+// Local
+#include "CalendarEventFilter.h"
+
+// Internal Library
+#include "DateTimeUtils.h"
+
+// External Library
+#include <algorithm>
+
+
+using namespace DateTimeUtils;
+
+namespace CalendarEventFilter {
+    std::vector<CalendarEvent> filterByDateRange(
+    const std::vector<CalendarEvent>& events, 
+    const time_t& rangeStart, 
+    const time_t& rangeEnd
+    ) {
+        std::vector<CalendarEvent> result;
+        for (const auto& event : events) {
+            struct tm ts, te;
+            DateTimeUtils::parseISODate(event.startISO.c_str(), ts);
+            DateTimeUtils::parseISODate(event.endISO.c_str(), te);
+
+            time_t eventStart = DateTimeUtils::timegm_portable(&ts);
+            time_t eventEnd   = DateTimeUtils::timegm_portable(&te);
+
+            // Prüfen, ob sich die Zeiträume überschneiden
+            if (eventStart < rangeEnd && eventEnd > rangeStart) {
+                result.push_back(event);
+                //LOG_DEBUG("Event: %s, startDay: %d, endDay: %d", event.title.c_str(), event.startDay, event.endDay);
+            }
+        }
+        return result;
+    }
+
+    /*int calculateAllDayEventLines(const std::vector<CalendarEvent>& events, const struct tm& weekStart) {
+        std::vector<std::pair<int, int>> points;
+        points.reserve(events.size() * 2);
+
+        for (const auto& ev : events) {
+            if (!ev.isAllDay) continue;
+
+            // Clamp innerhalb der Woche (Sicherheitscheck)
+            //int startDay = ev.startDay < 0 ? 0 : (ev.startDay > 6 ? 6 : ev.startDay);
+            //int endDay   = ev.endDay   < 0 ? 0 : (ev.endDay   > 6 ? 6 : ev.endDay);
+            
+            struct tm localTime = weekStart;
+            int startDay = std::max(0, getDayOffsetFromWeekStart(ev.startISO, localTime));
+            int endDay = getDayOffsetFromWeekStart(ev.endISO, localTime);
+            
+            LOG_DEBUG("event: %s; ev.startDay: %d; ev.endDay: %d", ev.title.c_str(), ev.startDay, ev.endDay);
+            LOG_DEBUG("event %s; startDay: %d; endDay: %d", ev.title.c_str(), startDay, endDay);
+
+            if (endDay < startDay) continue;
+
+            points.push_back(std::pair<int, int>(startDay, +1));
+            points.push_back(std::pair<int, int>(endDay + 1, -1));
+        }
+
+        if (points.empty()) return 0;
+
+        std::sort(points.begin(), points.end(),
+            [](const std::pair<int, int>& a, const std::pair<int, int>& b) -> bool {
+                if (a.first != b.first) return a.first < b.first;
+                return a.second < b.second; // Endpunkte zuerst
+            }
+        );
+
+        int current = 0;
+        int maxOverlap = 0;
+        for (const auto& p : points) {
+            current += p.second;
+            if (current > maxOverlap) {
+                maxOverlap = current;
+            }
+        }
+
+        return maxOverlap;
+    }*/
+
+    int calculateAllDayEventLines(const std::vector<CalendarEvent>& events, const struct tm& weekStart) {
+        int dayCounts[7] = {0};
+
+        for (const auto& ev : events) {
+            if (!ev.isAllDay) continue;
+
+            struct tm localTime = weekStart;
+            int startDay = getDayOffsetFromWeekStart(ev.startISO, localTime);
+            int endDay = getDayOffsetFromWeekStart(ev.endISO, localTime);
+
+            for (int d = startDay; d < endDay; ++d) {
+                dayCounts[d]++;
+                //LOG_DEBUG("event: %s; startDay: %d; endDay: %d; dayCounts[%d]: %d", ev.title.c_str(), startDay, endDay, d, dayCounts[d]);
+            }
+        }
+
+        int maxEvents = 0;
+        for (int d = 0; d < 7; ++d) {
+            if (dayCounts[d] > maxEvents) {
+                maxEvents = dayCounts[d];
+            }
+        }
+
+        return maxEvents;
+    }
+
+
+
+
+
+    #include <algorithm>
+#include <climits>
+
+void calculateTimeRange( 
+    int height,
+    const std::vector<CalendarEvent>& events,
+    int& outStartHour,
+    int& outEndHour,
+    int& outHourHeight
+) {
+    if (events.empty()) {
+        // Fallback: Standardwerte
+        outStartHour = 6;
+        outEndHour = 20;
+        outHourHeight = height / (outEndHour - outStartHour);
+        return;
+    }
+
+    // Annahme: CalendarEvent hat start und end als std::tm oder std::chrono::time_point
+    int minMinutes = INT_MAX;
+    int maxMinutes = INT_MIN;
+
+    for (const auto& e : events) {
+        // Beispiel: wenn CalendarEvent startHour, startMinute, endHour, endMinute hat
+        if(e.isAllDay) continue;
+        int startTotal = e.startHour * 60 + e.startMinute;
+        int endTotal   = e.endHour   * 60 + e.endMinute;
+
+        minMinutes = std::min(minMinutes, startTotal);
+        maxMinutes = std::max(maxMinutes, endTotal);
+    }
+
+    // Offset von 30 Minuten
+    minMinutes -= 30;
+    maxMinutes += 30;
+
+    // Nicht negativ und nicht über 24h
+    minMinutes = std::max(0, minMinutes);
+    maxMinutes = std::min(24 * 60, maxMinutes);
+
+    // Auf volle Stunden abrunden / aufrunden
+    outStartHour = minMinutes / 60;
+    if (minMinutes % 60 != 0) {
+        outStartHour = std::max(0, outStartHour); // Sicherheit
+    }
+
+    outEndHour = (maxMinutes + 59) / 60; // Aufrunden
+    outEndHour = std::min(24, outEndHour);
+
+    // Höhe pro Stunde berechnen
+    outHourHeight = height / (outEndHour - outStartHour);
+}
+
+};

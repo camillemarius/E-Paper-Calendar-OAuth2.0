@@ -1,10 +1,10 @@
-#include "CalendarSelector.h"
+#include "CalendarConfigurator.h"
 #include <logger.h>
 
-CalendarSelector::CalendarSelector(GoogleCalendar& calendar)
+CalendarConfigurator::CalendarConfigurator(GoogleCalendar& calendar)
     : _calendar(calendar), _server(80) {}
 
-void CalendarSelector::begin() {
+void CalendarConfigurator::begin() {
     _prefs.begin("calendar", false);
     loadSelectedCalendars();
 
@@ -37,19 +37,19 @@ void CalendarSelector::begin() {
     }
 }
 
-void CalendarSelector::onServerStarted(ServerStartedCallback cb) {
+void CalendarConfigurator::onServerStarted(ServerStartedCallback cb) {
     _serverStartedCallback = cb;
 }
 
-bool CalendarSelector::hasSelectedCalendars() const {
+bool CalendarConfigurator::hasSelectedCalendars() const {
     return !_selectedCalendarIds.empty();
 }
 
-const std::vector<String>& CalendarSelector::getSelectedCalendarIds() const {
+const std::vector<String>& CalendarConfigurator::getSelectedCalendarIds() const {
     return _selectedCalendarIds;
 }
 
-void CalendarSelector::forceSelection() {
+void CalendarConfigurator::forceSelection() {
     _prefs.begin("calendar", false);
     _prefs.remove("calendarIds");
     _prefs.end();
@@ -57,13 +57,13 @@ void CalendarSelector::forceSelection() {
     _selectedCalendarIds.clear();
     begin();  // startet Auswahl neu
 }
-void CalendarSelector::setupRoutes() {
+void CalendarConfigurator::setupRoutes() {
     _server.on("/", HTTP_GET, [this]() { handleRoot(); });
     _server.on("/select", HTTP_POST, [this]() { handleSelect(); });
     _server.on("/reset", HTTP_GET, [this]() { handleReset(); });
 }
 
-void CalendarSelector::handleRoot() {
+void CalendarConfigurator::handleRoot() {
     String html = "<html><body><h2>Wähle Kalender (Mehrfachauswahl möglich)</h2>";
     html += "<form method='POST' action='/select'>";
     for (const auto& c : _availableCalendars) {
@@ -78,7 +78,7 @@ void CalendarSelector::handleRoot() {
     _server.send(200, "text/html", html);
 }
 
-void CalendarSelector::handleSelect() {
+void CalendarConfigurator::handleSelect() {
     if (_server.hasArg("calendarId")) {
         _selectedCalendarIds.clear();
         // Sammle alle ausgewählten Kalender-IDs
@@ -97,7 +97,7 @@ void CalendarSelector::handleSelect() {
     }
 }
 
-void CalendarSelector::handleReset() {
+void CalendarConfigurator::handleReset() {
     _prefs.begin("calendar", false);
     _prefs.remove("calendarIds");
     _prefs.end();
@@ -107,7 +107,7 @@ void CalendarSelector::handleReset() {
 }
 
 
-void CalendarSelector::saveSelectedCalendars() {
+void CalendarConfigurator::saveSelectedCalendars() {
     _prefs.begin("calendar", false);
     String csv;
     for (const auto& id : _selectedCalendarIds) {
@@ -118,7 +118,7 @@ void CalendarSelector::saveSelectedCalendars() {
     _prefs.end();
 }
 
-void CalendarSelector::loadSelectedCalendars() {
+void CalendarConfigurator::loadSelectedCalendars() {
     _prefs.begin("calendar", false);
     _selectedCalendarIds.clear();
     String csv = _prefs.getString("calendarIds", "");
