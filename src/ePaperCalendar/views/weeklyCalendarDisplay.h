@@ -7,6 +7,7 @@
 // Internal Library
 #include <ePaperDriver.h>
 #include <CalendarTypes.h>
+#include <BatteryGauge.h>
 
 // External Library
 #include <vector>
@@ -21,6 +22,7 @@ public:
 
 private:
     EpaperDriver& display;
+    BatteryGauge battery;
 
 
     // Außenabstände
@@ -65,6 +67,7 @@ private:
     void drawDayLabels(int y, int height, const std::vector<CalendarEvent>& events, const struct tm& weekStart);
     void drawAllDayEvents(int y, int height, const std::vector<CalendarEvent>& events, const struct tm& weekStart);
     void drawTimedEvents( int y, int height, const std::vector<CalendarEvent>& events, int startHour, int endHour, int hourHeight, const struct tm& weekStart);
+    void drawBatteryLevel(int batteryPercent);
 
 
     //time_t timegm_portable(struct tm *tm);

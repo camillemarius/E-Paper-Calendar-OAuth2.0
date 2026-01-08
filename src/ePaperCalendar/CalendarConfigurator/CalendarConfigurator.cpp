@@ -2,10 +2,16 @@
 #include <logger.h>
 
 CalendarConfigurator::CalendarConfigurator(GoogleCalendar& calendar)
-    : _calendar(calendar), _server(80) {}
+    : _calendar(calendar), _server(80), _timeoutCallback(nullptr), _timeoutSeconds(120)  {
+    }
 
 void CalendarConfigurator::begin() {
     _prefs.begin("calendar", false);
+
+    // ---------------------------------------------------
+    //handleReset(); //TO BE DELETED
+    // ---------------------------------------------------
+
     loadSelectedCalendars();
 
     if (_selectedCalendarIds.empty()) {
@@ -17,6 +23,7 @@ void CalendarConfigurator::begin() {
         for (const auto& c : _availableCalendars) {
                 LOG_DEBUG("%s", c.summary.c_str());
         }
+        _googleAccountEmail = _calendar.getUserEmail();
 
 
         setupRoutes();
@@ -28,9 +35,17 @@ void CalendarConfigurator::begin() {
             _serverStartedCallback(url);
         }
 
+        unsigned long startMillis = millis();
         while (_selectedCalendarIds.empty()) {
             _server.handleClient();
             delay(10);
+            if ((millis() - startMillis) / 1000 > _timeoutSeconds) {
+                LOG_ERROR("Kalenderauswahl Timeout erreicht.");
+                if (_timeoutCallback) {
+                    _timeoutCallback();
+                }
+                break;
+            }
         }
     } else{
         LOG_DEBUG("selectedCalendarIds is not empty");
@@ -39,6 +54,14 @@ void CalendarConfigurator::begin() {
 
 void CalendarConfigurator::onServerStarted(ServerStartedCallback cb) {
     _serverStartedCallback = cb;
+}
+
+void CalendarConfigurator::onTimeout(TimeoutCallback cb) {
+    _timeoutCallback = cb;
+}
+
+void CalendarConfigurator::setTimeoutSeconds(int seconds) {
+    _timeoutSeconds = seconds;
 }
 
 bool CalendarConfigurator::hasSelectedCalendars() const {
@@ -64,7 +87,13 @@ void CalendarConfigurator::setupRoutes() {
 }
 
 void CalendarConfigurator::handleRoot() {
-    String html = "<html><body><h2>Wähle Kalender (Mehrfachauswahl möglich)</h2>";
+    String html = "<html><body><h2>Waehle Kalender (Mehrfachauswahl moeglich)</h2>";
+
+    // ---> Google-Account anzeigen
+    html += "<p><b>Angemeldeter Google-Account:</b><br>";
+    html += _googleAccountEmail;
+    html += "</p><hr>";
+
     html += "<form method='POST' action='/select'>";
     for (const auto& c : _availableCalendars) {
         html += "<input type='checkbox' name='calendarId' value='";

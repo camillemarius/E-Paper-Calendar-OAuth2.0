@@ -66,6 +66,8 @@ void IDisplay::drawHeader() {
 }
 
 void IDisplay::drawQRCode(const String& qrData) {
+    if(qrData == "") return;
+    
     QRCode qrcode;
     uint8_t qrcodeBytes[qrcode_getBufferSize(6)];
     qrcode_initText(&qrcode, qrcodeBytes, 6, ECC_LOW, qrData.c_str());

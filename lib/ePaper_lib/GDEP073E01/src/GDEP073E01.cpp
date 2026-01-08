@@ -144,7 +144,18 @@ void GDEP073E01::getTextBounds(const String &str, int16_t x, int16_t y, int16_t 
     display.getTextBounds(str,x,y,x1,y1,w,h);
 }
 
-void GDEP073E01::drawTextInRoundedRect(int16_t x, int16_t y, int16_t w, int16_t h,  
+String replaceUmlauts(String s) {
+    s.replace("ä","ae");
+    s.replace("ö","oe");
+    s.replace("ü","ue");
+    s.replace("Ä","Ae");
+    s.replace("Ö","Oe");
+    s.replace("Ü","Ue");
+    s.replace("ß","ss");
+    return s;
+}
+
+void GDEP073E01::drawTextInRoundedRect(int16_t x, int16_t y, int16_t w, int16_t h,   
                                      const String& text, uint16_t bgColor, uint16_t textColor,
                                      int16_t radius, int16_t padding_left, int16_t padding_top,
                                      uint16_t borderColor) {
@@ -162,88 +173,80 @@ void GDEP073E01::drawTextInRoundedRect(int16_t x, int16_t y, int16_t w, int16_t 
     // Zeilenhöhe anhand "Ay" bestimmen (für Ober- und Unterlänge)
     getTextBounds("Ay", 0, 0, &x1, &y1, &textW, &textH);
 
-    int16_t maxTextWidth = w - 2 * padding_left;
+    int16_t maxTextWidth  = w - 2 * padding_left;
     int16_t maxTextHeight = h - 2 * padding_top;
 
-    int maxLines = maxTextHeight / textH; // maximale Anzahl Zeilen
+    int maxLines = maxTextHeight / textH; 
     if (maxLines < 1) maxLines = 1;
 
     int16_t cursorX = x + padding_left;
     int16_t cursorY = y + padding_top + textH;
 
-    String remainingText = text;
-    std::vector<String> lines; // Zeilen puffern
+    String remainingText = replaceUmlauts(text);
+    std::vector<String> lines; 
 
-    // --- 1) Zeilen vorbereiten ---
+    // --- 1) Zeilen vorbereiten (wortweise) ---
     for (int lineNum = 0; lineNum < maxLines && remainingText.length() > 0; lineNum++) {
-        String line = remainingText;
-        getTextBounds(line, 0, 0, &x1, &y1, &textW, &textH);
-        // Kürze line so, dass sie in maxTextWidth passt
-        while (textW > maxTextWidth && line.length() > 0) {
-            line.remove(line.length() - 1);
-            getTextBounds(line, 0, 0, &x1, &y1, &textW, &textH);
-        }
+        String line;
+        String testLine;
+        uint16_t lineW, lineH;  
 
-        if (line.length() == 0) break;
-
-        // Prüfe, ob nächstes ganzes Wort noch reinpasst (erweitern)
-        int nextWordEnd = remainingText.indexOf(' ', line.length());
-        if (nextWordEnd == -1) nextWordEnd = remainingText.length();
-
-        String testLine = remainingText.substring(0, nextWordEnd);
-        getTextBounds(testLine, 0, 0, &x1, &y1, &textW, &textH);
-
-        if (textW <= maxTextWidth) {
-            line = testLine; // nächstes Wort passt noch komplett
-        } else {
-            // Versuche Umbruch an letztem Leerzeichen oder Bindestrich
-            int lastSpace = line.lastIndexOf(' ');
-            int lastDash  = line.lastIndexOf('-');
-            int splitPos  = (lastSpace > lastDash) ? lastSpace : lastDash;
-            if (splitPos > 0) {
-                line = line.substring(0, splitPos);
-                // Trim Ende-Leerzeichen
-                while (line.length() > 0 && line.charAt(line.length() - 1) == ' ')
-                    line.remove(line.length() - 1);
-            }
-        }
-
-        // Letzte Zeile und noch mehr Text: mit "..." kürzen
-        if (lineNum == maxLines - 1 && remainingText.length() > line.length()) {
-            const String ell = "...";
-
-            // Starte mit maximal möglichem Text (line) ohne Kürzung
-            String base = line;
-
-            // Versuche base + "..." passen zu lassen
-            getTextBounds(base + ell, 0, 0, &x1, &y1, &textW, &textH);
-
-            while (textW > maxTextWidth && base.length() > 0) {
-                base.remove(base.length() - 1);  // letzte char entfernen
-                // Entferne ggf. Leerzeichen am Ende
-                while (base.length() > 0 && base.charAt(base.length() - 1) == ' ')
-                    base.remove(base.length() - 1);
-
-                getTextBounds(base + ell, 0, 0, &x1, &y1, &textW, &textH);
-            }
-
-            // Wenn gar nichts passt, zeige nur "..."
-            if (base.length() == 0) {
-                getTextBounds(ell, 0, 0, &x1, &y1, &textW, &textH);
-                if (textW <= maxTextWidth) {
-                    line = ell;
-                } else {
-                    line = "";  // gar nichts oder alternativ "..."
-                }
+        while (remainingText.length() > 0) {
+            // Nächstes Wort finden
+            int nextSpace = remainingText.indexOf(' ');
+            String word;
+            if (nextSpace == -1) {
+                word = remainingText; // letztes Wort
             } else {
-                line = base + ell;
+                word = remainingText.substring(0, nextSpace + 1); // inkl. Leerzeichen
             }
+
+            // Teste, ob das Wort allein überhaupt passt
+            getTextBounds(word, 0, 0, &x1, &y1, &lineW, &lineH);
+            if (line.length() == 0 && lineW > maxTextWidth) {
+                // --- Wort passt alleine nicht -> kürzen + "..." ---
+                const String ell = "...";
+                String base = word;
+                getTextBounds(base + ell, 0, 0, &x1, &y1, &lineW, &lineH);
+                while (lineW > maxTextWidth && base.length() > 0) {
+                    base.remove(base.length() - 1);
+                    getTextBounds(base + ell, 0, 0, &x1, &y1, &lineW, &lineH);
+                }
+                line = (base.length() > 0) ? base + ell : ell;
+                remainingText.remove(0, word.length()); // Rest vom Wort abschneiden
+                break; // Zeile abschließen
+            }
+
+            // Teste, ob dieses Wort noch in die Zeile passt
+            testLine = line + word;
+            getTextBounds(testLine, 0, 0, &x1, &y1, &lineW, &lineH);
+
+            if (lineW <= maxTextWidth) {
+                // passt noch, übernehmen
+                line = testLine;
+                remainingText.remove(0, word.length());
+            } else {
+                // passt nicht -> Zeile abschließen
+                break;
+            }
+        }
+
+        // Falls letzte Zeile: ggf. "..." anhängen
+        if (lineNum == maxLines - 1 && remainingText.length() > 0) {
+            const String ell = "...";
+            String base = line;
+            uint16_t ellW, ellH;
+
+            getTextBounds(base + ell, 0, 0, &x1, &y1, &ellW, &ellH);
+            while (ellW > maxTextWidth && base.length() > 0) {
+                base.remove(base.length() - 1);
+                getTextBounds(base + ell, 0, 0, &x1, &y1, &ellW, &ellH);
+            }
+            line = (base.length() > 0) ? base + ell : ell;
+            remainingText = "";
         }
 
         lines.push_back(line);
-
-        // Schneide schon abgezeichneten Text ab
-        remainingText = remainingText.substring(line.length());
     }
 
     // --- 2) Zeichnen ---
@@ -252,5 +255,32 @@ void GDEP073E01::drawTextInRoundedRect(int16_t x, int16_t y, int16_t w, int16_t 
         print(l.c_str());
         cursorY += textH;
     }
+}
+
+void GDEP073E01::clearE6Screen()
+{
+    display.setFullWindow();
+
+    // --- 1) Weiß füllen ---
+    display.firstPage();
+    do {
+        display.fillScreen(GxEPD_WHITE);
+    } while(display.nextPage());
+
+    delay(100); // kleine Pause für Partikel
+
+    // --- 2) Schwarz füllen (invertiertes Muster für Ghosting) ---
+    display.firstPage();
+    do {
+        display.fillScreen(GxEPD_BLACK);
+    } while(display.nextPage());
+
+    delay(100);
+
+    // --- 3) Wieder Weiß füllen (sauberer Ausgangszustand) ---
+    display.firstPage();
+    do {
+        display.fillScreen(GxEPD_WHITE);
+    } while(display.nextPage());
 }
 

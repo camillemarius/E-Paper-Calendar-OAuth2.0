@@ -429,4 +429,38 @@ bool GoogleCalendar::isAllDayEvent(const String& isoStart, const String& isoEnd)
     return isoStart.indexOf('T') == -1 && isoEnd.indexOf('T') == -1;
 }
 
+String GoogleCalendar::getUserEmail() {
+    String token = _auth.getAccessToken();
+
+    HTTPClient http;
+    http.begin("https://www.googleapis.com/oauth2/v3/userinfo");
+    http.addHeader("Authorization", "Bearer " + token);
+
+    int httpCode = http.GET();
+    if (httpCode != 200) {
+        LOG_ERROR("Fehler beim Abrufen des User-Infos: %d", httpCode);
+        http.end();
+        return "";
+    }
+
+    String payload = http.getString();
+    http.end();
+
+    DynamicJsonDocument doc(4096);
+    DeserializationError err = deserializeJson(doc, payload);
+    if (err) {
+        LOG_ERROR("JSON Fehler beim Parsen der Userinfo.");
+        return "";
+    }
+
+    const char* email = doc["email"];
+    if (!email) {
+        LOG_ERROR("Userinfo enthält keine Email.");
+        return "";
+    }
+
+    return String(email);
+}
+
+
 

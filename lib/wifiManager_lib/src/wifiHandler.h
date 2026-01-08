@@ -8,6 +8,7 @@ class WiFiHandler {
 public:
     // Callback type for when AP mode starts
     typedef std::function<void(const String& portalUrl)> APCallback;
+    typedef std::function<void()> TimeoutCallback;
 
     WiFiHandler(int timeout);
 
@@ -16,13 +17,16 @@ public:
 
     // Register a callback function to be called when AP mode starts
     void onAccessPointStart(APCallback cb);
+    void onTimeout(TimeoutCallback cb);
 
 private:
     APCallback userCallback;
+    TimeoutCallback timeoutCallback;
 
     const String m_encryption;
     const String m_ssid;
     const String m_password;
+    const int m_timeout;
 };
 
 #endif // WIFIHANDLER_H

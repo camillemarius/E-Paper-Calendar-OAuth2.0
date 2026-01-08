@@ -16,6 +16,7 @@ public:
   GoogleCalendar(GoogleAuth& auth);
   bool getAvailableCalendars(std::vector<CalendarInfo>& outCalendars);
   bool getEvents(const String& calendarId, std::vector<CalendarEvent>& events);
+  String getUserEmail();
 
 private:
     bool isAllDayEvent(const String& isoStart, const String& isoEnd);

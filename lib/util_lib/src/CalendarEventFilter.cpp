@@ -79,37 +79,46 @@ namespace CalendarEventFilter {
         return maxOverlap;
     }*/
 
-    int calculateAllDayEventLines(const std::vector<CalendarEvent>& events, const struct tm& weekStart) {
-        int dayCounts[7] = {0};
+int calculateAllDayEventLines( const std::vector<CalendarEvent>& events, const struct tm& weekStart) {
+    int dayCounts[7] = {0};
 
-        for (const auto& ev : events) {
-            if (!ev.isAllDay) continue;
+    for (const auto& ev : events) {
+        if (!ev.isAllDay) continue;
 
-            struct tm localTime = weekStart;
-            int startDay = getDayOffsetFromWeekStart(ev.startISO, localTime);
-            int endDay = getDayOffsetFromWeekStart(ev.endISO, localTime);
+        struct tm localTime = weekStart;
+        int startDay = getDayOffsetFromWeekStart(ev.startISO, localTime);
+        int endDay   = getDayOffsetFromWeekStart(ev.endISO, localTime);
 
-            for (int d = startDay; d < endDay; ++d) {
-                dayCounts[d]++;
-                //LOG_DEBUG("event: %s; startDay: %d; endDay: %d; dayCounts[%d]: %d", ev.title.c_str(), startDay, endDay, d, dayCounts[d]);
-            }
+        //LOG_DEBUG("Startday: %d", startDay);
+        //LOG_DEBUG("Endday: %d", endDay);
+
+        int clampedStart = std::max(0, std::min(7, startDay));
+        int clampedEnd   = std::max(0, std::min(7, endDay));
+
+        if (clampedEnd <= clampedStart) {
+            LOG_DEBUG("Event außerhalb der Woche, skip: %s", ev.title.c_str());
+            continue;
         }
 
-        int maxEvents = 0;
-        for (int d = 0; d < 7; ++d) {
-            if (dayCounts[d] > maxEvents) {
-                maxEvents = dayCounts[d];
-            }
+        for (int d = clampedStart; d < clampedEnd; ++d) {
+            dayCounts[d]++;
         }
-
-        return maxEvents;
     }
 
+    int maxEvents = 0;
+    for (int d = 0; d < 7; ++d) {
+        if (dayCounts[d] > maxEvents) maxEvents = dayCounts[d];
+    }
+
+    return maxEvents;
+}
 
 
 
 
-    #include <algorithm>
+
+
+#include <algorithm>
 #include <climits>
 
 void calculateTimeRange( 

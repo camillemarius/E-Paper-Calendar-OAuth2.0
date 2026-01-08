@@ -8,7 +8,8 @@ class FPC_8612 : public EpaperDriver {
 public:             
     FPC_8612(uint8_t cs = 15, uint8_t dc = 27, uint8_t rst = 26, uint8_t busy = 25,
              uint8_t sck = 13, uint8_t miso = 12, uint8_t mosi = 14, uint8_t ss = 15);
-
+    
+    // Core
     void init() override;
     void clear() override;
     void setRotation(int rotation) override;
@@ -28,8 +29,10 @@ public:
     void drawRoundRect(int16_t x, int16_t y, int16_t w, int16_t h, int16_t r, uint16_t color) override;
     void drawCircle(int16_t x, int16_t y, int16_t r, uint16_t color) override;
 
-    void drawBitmap(int16_t x, int16_t y, const uint8_t* bitmap,
-                    int16_t w, int16_t h, uint16_t color) override;
+    void drawBitmap(int16_t x, int16_t y, const uint8_t* bitmap, int16_t w, int16_t h, uint16_t color) override;
+    void drawRGBBitmap(int16_t x, int16_t y, uint16_t *bitmap, int16_t w, int16_t h);
+    void drawRGBBitmap(int16_t x, int16_t y, uint16_t *bitmap, uint8_t *mask, int16_t w, int16_t h);
+    void drawImage(const uint8_t bitmap[], int16_t x, int16_t y, int16_t w, int16_t h, bool invert = false, bool mirror_y = false, bool pgm = false);
 
     // Text
     void setTextColor(uint16_t color) override;

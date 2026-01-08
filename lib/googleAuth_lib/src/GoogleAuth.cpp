@@ -35,6 +35,15 @@ String GoogleAuth::getAccessToken() {
   return _accessToken;
 }
 
+void GoogleAuth::deleteRefreshToken() {
+    _refreshToken = "";
+    if (_tokenStorage.clearRefreshToken()) {
+        LOG_INFO("Refresh Token erfolgreich gelöscht");
+    } else {
+        LOG_WARNING("Refresh Token konnte nicht gelöscht werden");
+    }
+}
+
 void GoogleAuth::onAuthPrompt(AuthPromptCallback cb) { 
   _authPromptCallback = cb; 
 }

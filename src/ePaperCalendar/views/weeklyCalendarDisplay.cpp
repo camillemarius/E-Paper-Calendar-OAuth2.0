@@ -1,5 +1,5 @@
 // Local
-#include "weeklyCalendar.h"
+#include "weeklyCalendarDisplay.h"
 
 // Internal Library
 #include <logger.h>
@@ -18,7 +18,8 @@ using namespace DateTimeUtils;
 using namespace CalendarEventFilter;
 
 WeeklyCalendar::WeeklyCalendar(EpaperDriver& disp)
-    : display(disp) {}
+    : display(disp) {  
+    }
 
 void WeeklyCalendar::drawCalendar(const std::vector<CalendarEvent>& events) {
     struct tm today = getTodayAsWeekStart();
@@ -29,14 +30,24 @@ void WeeklyCalendar::drawCalendar(const std::vector<CalendarEvent>& events) {
     auto weekStart = today; // da today schon der Wochenstart ist
 
     int allDayLines = CalendarEventFilter::calculateAllDayEventLines(filteredEvents, weekStart);
-    //LOG_DEBUG("alldayLines: %d", allDayLines);
     auto layout = CalendarLayout::compute(display, allDayLines);
 
     int startHour, endHour, hourHeight;
     CalendarEventFilter::calculateTimeRange(layout.gridHeight, filteredEvents, startHour, endHour, hourHeight);
 
+    
+    // Fuel Gauge
+    // Setup i2c
+    if(!battery.begin(21, 22))  { // SDA, SCL
+        LOG_DEBUG("MAX17048 nicht gefunden!");
+    } 
+    float voltage = battery.getVoltage();
+    int batteryPercent = battery.getPercentage();
+    LOG_DEBUG("Voltage: %.3f V\tSOC: %d %%", voltage, batteryPercent);
+
     display.firstPage();
     do {
+        drawBatteryLevel(batteryPercent);
         drawDayLabels(layout.headerY, layout.headerHeight, filteredEvents, weekStart);
         drawGrid(layout.gridY, startHour, endHour, hourHeight);
         drawAllDayEvents(layout.allDayY, layout.allDayHeight, filteredEvents, weekStart);
@@ -368,6 +379,20 @@ void WeeklyCalendar::drawDayLabels(int y, int height, const std::vector<Calendar
             display.print(label);
         }
     }
+}
+
+void WeeklyCalendar::drawBatteryLevel(int batteryPercent) {
+    display.setFont(&FreeSans9pt7b);
+    display.setTextColor(COLOR_BLACK);
+
+    String text = String(batteryPercent) + "%";
+
+    // Position rechts oben (10px vom Rand)
+    int x = display.width() - 20 - text.length() * 6; // 6 px pro Zeichen grob
+    int y = 15; // 15 px von oben
+
+    display.setCursor(x, y);
+    display.print(text.c_str());
 }
 
 

@@ -19,6 +19,7 @@ public:
     bool authorize(unsigned long maxWaitSeconds = 300);
     String getAccessToken();
     void onAuthPrompt(AuthPromptCallback cb);
+    void deleteRefreshToken();
 
 private: 
     bool hasValidAccessToken() const;

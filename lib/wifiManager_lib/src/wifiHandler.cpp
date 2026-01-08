@@ -2,11 +2,16 @@
 #include <WiFi.h>  // Use <ESP8266WiFi.h> for ESP8266
 #include <logger.h>
 
-WiFiHandler::WiFiHandler(int timeout) : userCallback(nullptr),
-                m_encryption("WPA"),m_ssid("E-Paper Kalender"), m_password("123456789") {}
+WiFiHandler::WiFiHandler(int timeout) : userCallback(nullptr), timeoutCallback(nullptr),
+                m_encryption("WPA"),m_ssid("E-Paper Kalender"), m_password("123456789"),
+                m_timeout(timeout) {}
 
 void WiFiHandler::onAccessPointStart(APCallback cb) {
     userCallback = cb;
+}
+
+void WiFiHandler::onTimeout(std::function<void()> cb) {
+    timeoutCallback = cb;
 }
 
 
@@ -14,7 +19,8 @@ bool WiFiHandler::begin() {
     WiFiManager wifiManager;
 
     wifiManager.setConnectTimeout(30); // Timeout für Verbindungsversuch
-
+    wifiManager.setConfigPortalTimeout(m_timeout);
+    
     // Optional: Nur "WiFi"-Eintrag im Menü anzeigen
     //std::vector<const char*> menu = {"wifi"};
     //wifiManager.setMenu(menu);
@@ -29,7 +35,13 @@ bool WiFiHandler::begin() {
 
     // Öffnet direkt das Konfigurationsportal (WLAN-Auswahlseite)
     //wifiManager.startConfigPortal("E-Paper Kalender", "123456789");
-    wifiManager.autoConnect("E-Paper Kalender", "123456789");
+    if (!wifiManager.autoConnect(m_ssid.c_str(), m_password.c_str())) {
+        LOG_ERROR("WiFi setup timeout or failed.");
+        if (timeoutCallback) {
+            timeoutCallback(); 
+        }
+        return false;
+    }
 
     if (WiFi.status() == WL_CONNECTED) {
         LOG_INFO("WiFi connected.");

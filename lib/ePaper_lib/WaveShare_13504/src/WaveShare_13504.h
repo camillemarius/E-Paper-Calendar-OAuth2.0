@@ -1,13 +1,15 @@
 #pragma once
 
-#include <GxEPD2_7C.h>
+#include <GxEPD2_BW.h>
+//#include <epd/GxEPD2_750_T7.h>
+#include <gdey/GxEPD2_750_GDEY075T7.h>
 #include <SPI.h>
 #include "ePaperDriver.h"
 
-class GDEP073E01 : public EpaperDriver {
+class WaveShare_13504 : public EpaperDriver {
 public:             
-    GDEP073E01(uint8_t cs = 27, uint8_t dc = 14, uint8_t rst = 12, uint8_t busy = 13,
-             uint8_t sck = 18, uint8_t miso = 19, uint8_t mosi = 23, uint8_t ss = 15);
+    WaveShare_13504(uint8_t cs = 15, uint8_t dc = 27, uint8_t rst = 26, uint8_t busy = 25,
+             uint8_t sck = 13, uint8_t miso = 12, uint8_t mosi = 14, uint8_t ss = 15);
     
     // Core
     void init() override;
@@ -34,8 +36,6 @@ public:
     void drawRGBBitmap(int16_t x, int16_t y, uint16_t *bitmap, uint8_t *mask, int16_t w, int16_t h);
     void drawImage(const uint8_t bitmap[], int16_t x, int16_t y, int16_t w, int16_t h, bool invert = false, bool mirror_y = false, bool pgm = false);
 
-    void clearE6Screen();
-
     // Text
     void setTextColor(uint16_t color) override;
     void setTextColour(uint16_t color) override;
@@ -45,7 +45,6 @@ public:
     void printAt(int16_t x, int16_t y, const char* text) override;
     virtual void getTextBounds(const String &str, int16_t x, int16_t y, int16_t *x1, int16_t *y1, uint16_t *w, uint16_t *h) override;
     void drawTextInRoundedRect(int16_t x, int16_t y, int16_t w, int16_t h, const String& text, uint16_t bgColor, uint16_t textColor, int16_t radius = 5, int16_t padding_left = 7, int16_t padding_top = 7, uint16_t borderColor = 0);
-    void drawPixel(int16_t x, int16_t y, uint16_t color);
 
     // Display Info
     int16_t width() override;
@@ -54,6 +53,7 @@ public:
 private:
     uint8_t pinCS, pinDC, pinRST, pinBUSY;
     uint8_t pinSCK, pinMISO, pinMOSI, pinSS;
-
-    GxEPD2_7C < GxEPD2_730c_GDEP073E01, GxEPD2_730c_GDEP073E01::HEIGHT / 6 > display;
+    
+    //GxEPD2_BW<GxEPD2_750_T7, GxEPD2_750_T7::HEIGHT/2> display;
+    GxEPD2_BW<GxEPD2_750_GDEY075T7, GxEPD2_750_GDEY075T7::HEIGHT / 2> display;
 };
