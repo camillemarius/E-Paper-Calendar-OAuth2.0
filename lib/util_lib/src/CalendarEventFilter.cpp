@@ -3,6 +3,7 @@
 
 // Internal Library
 #include "DateTimeUtils.h"
+#include <logger.h>
 
 // External Library
 #include <algorithm>
@@ -128,35 +129,59 @@ void calculateTimeRange(
     int& outEndHour,
     int& outHourHeight
 ) {
+    /*LOG_DEBUG("calculateTimeRange() called: height=%d, events=%zu",
+              height, events.size());*/
+
     if (events.empty()) {
         // Fallback: Standardwerte
         outStartHour = 6;
         outEndHour = 20;
         outHourHeight = height / (outEndHour - outStartHour);
+        LOG_DEBUG("Fallback result: start=%d end=%d hourHeight=%d",
+                  outStartHour, outEndHour, outHourHeight);
         return;
     }
 
     // Annahme: CalendarEvent hat start und end als std::tm oder std::chrono::time_point
     int minMinutes = INT_MAX;
     int maxMinutes = INT_MIN;
+    int skippedAllDay = 0;
 
     for (const auto& e : events) {
         // Beispiel: wenn CalendarEvent startHour, startMinute, endHour, endMinute hat
-        if(e.isAllDay) continue;
+        if(e.isAllDay) {
+            skippedAllDay++;
+            continue;
+        }
         int startTotal = e.startHour * 60 + e.startMinute;
         int endTotal   = e.endHour   * 60 + e.endMinute;
+
+        /*LOG_DEBUG("Event: %s, %02d:%02d -> %02d:%02d (%d -> %d)",
+                  e.title.c_str(), e.startHour, e.startMinute,
+                  e.endHour, e.endMinute,
+                  startTotal, endTotal);*/
 
         minMinutes = std::min(minMinutes, startTotal);
         maxMinutes = std::max(maxMinutes, endTotal);
     }
 
+    /*LOG_DEBUG("Events processed. skippedAllDay=%d", skippedAllDay);
+    LOG_DEBUG("Min/Max before offset: min=%d max=%d",
+              minMinutes, maxMinutes);*/
+
     // Offset von 30 Minuten
     minMinutes -= 30;
     maxMinutes += 30;
 
+    /*LOG_DEBUG("After 30min offset: min=%d max=%d",
+              minMinutes, maxMinutes);*/
+
     // Nicht negativ und nicht über 24h
     minMinutes = std::max(0, minMinutes);
     maxMinutes = std::min(24 * 60, maxMinutes);
+
+    /*LOG_DEBUG("Clamped to day range: min=%d max=%d",
+              minMinutes, maxMinutes);*/
 
     // Auf volle Stunden abrunden / aufrunden
     outStartHour = minMinutes / 60;
@@ -164,11 +189,26 @@ void calculateTimeRange(
         outStartHour = std::max(0, outStartHour); // Sicherheit
     }
 
-    outEndHour = (maxMinutes + 59) / 60; // Aufrunden
+    outStartHour = minMinutes / 60;
+    outEndHour = (maxMinutes + 59) / 60;
+
+    outStartHour = std::max(0, outStartHour);
     outEndHour = std::min(24, outEndHour);
 
+    /*LOG_DEBUG("Computed hours: startHour=%d endHour=%d",
+              outStartHour, outEndHour);*/
+
     // Höhe pro Stunde berechnen
-    outHourHeight = height / (outEndHour - outStartHour);
+    int hourSpan = outEndHour - outStartHour;
+    if (hourSpan <= 0) {
+        /*LOG_DEBUG("ERROR: invalid hour span (%d) -> forcing span=1", hourSpan);*/
+        hourSpan = 1;
+    }
+
+    outHourHeight = height / hourSpan;
+
+    /*LOG_DEBUG("Final result: hourSpan=%d hourHeight=%d",
+              hourSpan, outHourHeight);*/
 }
 
 };

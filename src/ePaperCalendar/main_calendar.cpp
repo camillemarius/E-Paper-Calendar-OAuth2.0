@@ -24,15 +24,18 @@
 
 WiFiHandler wifiHandler(180);
 
-#ifdef GOOGLECALENDAR_UNIVERSALDRIVERCACH_FPC8612
+#ifdef GOOGLECALENDAR_UNIVERSALDRIVERCACH_DEPG0750RWF86BF
+    #include <DEPG0750RWF86BF.h>
+    DEPG0750RWF86BF epaperDisplay(27, 25, 26, 32, 18, 19, 23, 27);
+#elif defined(GOOGLECALENDAR_UNIVERSALDRIVERCACH_FPC8612)
     #include <FPC8612.h>
     FPC_8612 epaperDisplay(27, 25, 26, 32, 18, 19, 23, 27);
 #elif defined(GOOGLECALENDAR_UNIVERSALDRIVERCACH_GDEW075T7)
-    #include <FPC8612.h>
-    FPC_8612 epaperDisplay(27, 25, 26, 32, 18, 19, 23, 27);
+    #include <GDEW075T7.h>
+    GDEW075T7 epaperDisplay(27, 25, 26, 32, 18, 19, 23, 27);
 #elif defined(GOOGLECALENDAR_UNIVERSALDRIVERCACH_GDEP073E01)
-    #include <FPC8612.h>
-    FPC_8612 epaperDisplay(27, 25, 26, 32, 18, 19, 23, 27);
+    #include <GDEP073E01.h>
+    GDEP073E01 epaperDisplay(27, 25, 26, 32, 18, 19, 23, 27);
     
 #elif defined(GOOGLECALENDAR_V1DRIVER_FPC8612)
     #include <FPC8612.h>

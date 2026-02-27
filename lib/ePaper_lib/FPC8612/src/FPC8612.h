@@ -53,4 +53,5 @@ private:
     uint8_t pinSCK, pinMISO, pinMOSI, pinSS;
 
     GxEPD2_3C<GxEPD2_750c_Z08, GxEPD2_750c_Z08::HEIGHT/2> display;
+    // Der mit guter Qualität 2024 mit UC8179
 };

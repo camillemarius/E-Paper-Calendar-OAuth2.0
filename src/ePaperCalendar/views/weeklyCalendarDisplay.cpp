@@ -49,9 +49,19 @@ void WeeklyCalendar::drawCalendar(const std::vector<CalendarEvent>& events) {
     do {
         drawBatteryLevel(batteryPercent);
         drawDayLabels(layout.headerY, layout.headerHeight, filteredEvents, weekStart);
-        drawGrid(layout.gridY, startHour, endHour, hourHeight);
         drawAllDayEvents(layout.allDayY, layout.allDayHeight, filteredEvents, weekStart);
-        drawTimedEvents(layout.timedEventsY, layout.timedEventsHeight, filteredEvents, startHour, endHour, hourHeight, weekStart);
+
+
+        // Filtere nur Timed-Events (Noch tewas unschön gelöst.....) Besser timedEvents direkt drawTimedEvent übergeben?
+        //std::vector<CalendarEvent> timedEvents;
+        //for (const auto& e : filteredEvents) {
+        //    if (!e.isAllDay) timedEvents.push_back(e);
+        //}
+        //if (!timedEvents.empty()) {
+        //} else {
+        //    drawGrid(layout.gridY, startHour, endHour, hourHeight);
+            drawTimedEvents(layout.timedEventsY, layout.timedEventsHeight, filteredEvents, startHour, endHour, hourHeight, weekStart);
+        //}
     } while (display.nextPage());
 }
 
@@ -156,51 +166,20 @@ void WeeklyCalendar::drawAllDayEvents(int y, int height, const std::vector<Calen
 /*void WeeklyCalendar::drawTimedEvents(int y, int height, const std::vector<CalendarEvent>& events, int startHour, int endHour, int hourHeight, const struct tm& weekStart) {
     display.setFont(&FreeSans9pt7b);
 
-    for (const auto& event : events) {
-        if (event.isAllDay) continue;
-
-        struct tm localTime = weekStart;
-        int day = getDayOffsetFromWeekStart(event.startISO, localTime);
-        if (day < 0 || day >= numberOfDays) continue;
-
-        int startH = event.startHour;
-        int endH   = event.endHour;
-        int startMin = event.startMinute;
-        int endMin   = event.endMinute;
-
-        if (endH <= startHour || startH >= endHour) continue;
-
-        float startTime = std::max((float)startHour, startH + startMin / 60.0f);
-        float endTime   = std::min((float)endHour,   endH + endMin   / 60.0f);
-
-        int yStart = y + static_cast<int>((startTime - startHour) * hourHeight + eventBoxMargin);
-        int yEnd   = y + static_cast<int>((endTime   - startHour) * hourHeight - eventBoxMargin);
-
-        int x = originX + day * dayColumnWidth + eventBoxMargin;
-        int w = dayColumnWidth - 2 * eventBoxMargin;
-        int h = yEnd - yStart;
-
-        if (h < minEventHeight) h = minEventHeight;
-
-        // Farben je nach Kalender anpassen
-        uint16_t bgColor = COLOR_BLACK;   // Standard Hintergrundfarbe
-        uint16_t ftColor = COLOR_WHITE;   // Standard Schriftfarbe
-        uint16_t brColor = COLOR_BLACK;   // Standart Randfarbe
-
-        if (event.calendarId == "8132566a2c345c1b5f411b936db874e78af0907f3dd20fccf7b59f7198459b4a@group.calendar.google.com") {
-            bgColor = COLOR_WHITE;
-            ftColor = COLOR_BLACK;
-            brColor = COLOR_BLACK;
+    // Prüfen, ob überhaupt Timed-Events in der ganzen Woche existieren
+    bool hasTimedEvents = false;
+    for (const auto& e : events) {
+        if (!e.isAllDay) {
+            hasTimedEvents = true;
+            break;
         }
-
-        display.drawTextInRoundedRect(x, yStart, w, h, event.title,
-                                      bgColor, ftColor,
-                                      eventRadius, eventTextMarginX, eventTextMarginY, 
-                                      brColor);
     }
-}*/
-void WeeklyCalendar::drawTimedEvents(int y, int height, const std::vector<CalendarEvent>& events, int startHour, int endHour, int hourHeight, const struct tm& weekStart) {
-    display.setFont(&FreeSans9pt7b);
+
+    if (hasTimedEvents) {
+        drawGrid(y, startHour, endHour, hourHeight);
+    }
+
+
 
     for (int day = 0; day < numberOfDays; ++day) {
         // Alle Events für diesen Tag sammeln
@@ -271,7 +250,124 @@ void WeeklyCalendar::drawTimedEvents(int y, int height, const std::vector<Calend
                                           brColor);
         }
     }
+}*/
+
+void WeeklyCalendar::drawTimedEvents(int y, int height, const std::vector<CalendarEvent>& events,
+                                     int startHour, int endHour, int hourHeight, const struct tm& weekStart) {
+    display.setFont(&FreeSans9pt7b);
+
+    // --- Schritt 1: Timed-Events pro Tag sammeln ---
+    std::vector<std::vector<const CalendarEvent*>> eventsPerDay(numberOfDays);
+    bool hasTimedEvents = false;
+
+    for (const auto& event : events) {
+        if (event.isAllDay) continue;
+
+        struct tm localTime = weekStart;
+        int day = getDayOffsetFromWeekStart(event.startISO, localTime);
+        if (day < 0 || day >= numberOfDays) continue;
+
+        eventsPerDay[day].push_back(&event);
+        hasTimedEvents = true;  // Sobald ein Timed-Event existiert
+    }
+
+    // --- Schritt 2: nur zeichnen, wenn Timed-Events existieren ---
+    if (!hasTimedEvents) {
+        display.setTextColor(COLOR_BLACK);
+
+        // --- Trennlinie am oberen Rand des Timed-Event-Bereichs ---
+        display.drawLine(originX, y, originX+calendarWidth, y, COLOR_BLACK);
+
+        const char* text1 = "\"Zit zum d Bei ufehebe\"";
+        const char* text2 = "Keine Termine gefunden";
+
+        // Text1-Breite ermitteln
+        int16_t x1, y1;
+        uint16_t w1, h1;
+        display.getTextBounds(text1, 0, 0, &x1, &y1, &w1, &h1);
+        int xText1 = (display.width() - w1) / 2;
+        int yText1 = display.height() / 2 + 40;  // obere Zeile leicht nach unten
+
+        display.setCursor(xText1, yText1);
+        display.print(text1);
+
+        // Text2-Breite ermitteln
+        int16_t x2, y2;
+        uint16_t w2, h2;
+        display.getTextBounds(text2, 0, 0, &x2, &y2, &w2, &h2);
+        int xText2 = (display.width() - w2) / 2;
+        int yText2 = yText1 + h1 + 8;  // Abstand 4px nach unten
+        display.setCursor(xText2, yText2);
+        display.print(text2);
+
+        return;
+    }
+
+
+    drawGrid(y, startHour, endHour, hourHeight);
+
+    // --- Schritt 3: Events pro Tag zeichnen ---
+    for (int day = 0; day < numberOfDays; ++day) {
+        auto& dayEvents = eventsPerDay[day];
+        if (dayEvents.empty()) continue;
+
+        // Events nach Startzeit sortieren
+        std::sort(dayEvents.begin(), dayEvents.end(), [](const CalendarEvent* a, const CalendarEvent* b) {
+            return (a->startHour + a->startMinute / 60.0f) < (b->startHour + b->startMinute / 60.0f);
+        });
+
+        for (size_t i = 0; i < dayEvents.size(); ++i) {
+            const auto& event = *dayEvents[i];
+            int startH = event.startHour;
+            int endH   = event.endHour;
+            int startMin = event.startMinute;
+            int endMin   = event.endMinute;
+
+            if (endH <= startHour || startH >= endHour) continue;
+
+            float startTime = std::max((float)startHour, startH + startMin / 60.0f);
+            float endTime   = std::min((float)endHour,   endH + endMin   / 60.0f);
+
+            int yStart = y + static_cast<int>((startTime - startHour) * hourHeight + eventBoxMargin);
+            int yEnd   = y + static_cast<int>((endTime   - startHour) * hourHeight - eventBoxMargin);
+            int h = yEnd - yStart;
+            if (h < minEventHeight) h = minEventHeight;
+
+            // Überlappende Events zählen
+            int overlapCount = 1;
+            int positionIndex = 0;
+            for (size_t j = 0; j < dayEvents.size(); ++j) {
+                if (i == j) continue;
+                const auto& other = *dayEvents[j];
+                float otherStart = other.startHour + other.startMinute / 60.0f;
+                float otherEnd   = other.endHour   + other.endMinute   / 60.0f;
+                if (otherEnd > startTime && otherStart < endTime) {
+                    overlapCount++;
+                    if (j < i) positionIndex++;  
+                }
+            }
+
+            int eventWidth = (dayColumnWidth - 2 * eventBoxMargin) / overlapCount;
+            int x = originX + day * dayColumnWidth + eventBoxMargin + positionIndex * eventWidth;
+
+            // Farben
+            uint16_t bgColor = COLOR_BLACK;
+            uint16_t ftColor = COLOR_WHITE;
+            uint16_t brColor = COLOR_BLACK;
+            if (event.calendarId == "8132566a2c345c1b5f411b936db874e78af0907f3dd20fccf7b59f7198459b4a@group.calendar.google.com") {
+                bgColor = COLOR_WHITE;
+                ftColor = COLOR_BLACK;
+                brColor = COLOR_BLACK;
+            }
+
+            display.drawTextInRoundedRect(x, yStart, eventWidth, h, event.title,
+                                          bgColor, ftColor,
+                                          eventRadius, eventTextMarginX, eventTextMarginY, 
+                                          brColor);
+        }
+    }
 }
+
 
 
 void WeeklyCalendar::drawDayLabelsAndGrid(int y, int height, const std::vector<CalendarEvent>& events, const struct tm& weekStart, int startHour, int endHour, int hourHeight) {
@@ -385,11 +481,13 @@ void WeeklyCalendar::drawBatteryLevel(int batteryPercent) {
     display.setFont(&FreeSans9pt7b);
     display.setTextColor(COLOR_BLACK);
 
+    batteryPercent = constrain(batteryPercent, 0, 100);
     String text = String(batteryPercent) + "%";
 
+
     // Position rechts oben (10px vom Rand)
-    int x = display.width() - 20 - text.length() * 6; // 6 px pro Zeichen grob
-    int y = 15; // 15 px von oben
+    int x = display.width() - 30 - text.length() * 6; // 6 px pro Zeichen grob
+    int y = 25; // 15 px von oben
 
     display.setCursor(x, y);
     display.print(text.c_str());

@@ -20,7 +20,10 @@
 #include "views/IMG_20171230_000229_224.h"
 #include "views/E6_Vespa_3c.h"
 //#include "views/DSCN1745_bw.h"
-
+#include "views/IMG_202601308.h"
+#include "views/IMG_20260109_182555.h"
+#include "views/IMG_20251229_185639.h"
+#include "views/IMG_20260130_191741.h"
 
 
 
@@ -163,7 +166,7 @@ void setup() {
     display.firstPage();
     do {
         //IMG_20250621_093707_POP_OUT
-        display.drawRGBBitmap(0, 0, const_cast<uint16_t*>(IMG_20250101_133528), 800, 480);
+        display.drawRGBBitmap(0, 0, const_cast<uint16_t*>(IMG_20260130_191741), 800, 480);
         //display.drawRGBBitmap(0, 0, const_cast<uint16_t*>(E6_Vespa_3c), 640, 384);
     } while (display.nextPage());
    ////////////////////////////////////////////////////////WORKING

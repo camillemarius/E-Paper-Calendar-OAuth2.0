@@ -1,14 +1,16 @@
 #pragma once
 
-#include <GxEPD2_3C.h>
 #include <SPI.h>
 #include "ePaperDriver.h"
+#include "GxEPD2_750c_86BF.h"
+#include <GxEPD2_3C.h>
 
-class GDEW075T7 : public EpaperDriver {
+class DEPG0750RWF86BF : public EpaperDriver {
 public:             
-    GDEW075T7(uint8_t cs = 15, uint8_t dc = 27, uint8_t rst = 26, uint8_t busy = 25,
+    DEPG0750RWF86BF(uint8_t cs = 15, uint8_t dc = 27, uint8_t rst = 26, uint8_t busy = 25,
              uint8_t sck = 13, uint8_t miso = 12, uint8_t mosi = 14, uint8_t ss = 15);
-
+    
+    // Core
     void init() override;
     void clear() override;
     void setRotation(int rotation) override;
@@ -28,10 +30,10 @@ public:
     void drawRoundRect(int16_t x, int16_t y, int16_t w, int16_t h, int16_t r, uint16_t color) override;
     void drawCircle(int16_t x, int16_t y, int16_t r, uint16_t color) override;
 
-    void drawBitmap(int16_t x, int16_t y, const uint8_t* bitmap,
-                    int16_t w, int16_t h, uint16_t color) override;
-    void drawRGBBitmap(int16_t x, int16_t y, uint16_t *bitmap,
-                int16_t w, int16_t h);
+    void drawBitmap(int16_t x, int16_t y, const uint8_t* bitmap, int16_t w, int16_t h, uint16_t color) override;
+    void drawRGBBitmap(int16_t x, int16_t y, uint16_t *bitmap, int16_t w, int16_t h);
+    void drawRGBBitmap(int16_t x, int16_t y, uint16_t *bitmap, uint8_t *mask, int16_t w, int16_t h);
+    void drawImage(const uint8_t bitmap[], int16_t x, int16_t y, int16_t w, int16_t h, bool invert = false, bool mirror_y = false, bool pgm = false);
 
     // Text
     void setTextColor(uint16_t color) override;
@@ -42,7 +44,6 @@ public:
     void printAt(int16_t x, int16_t y, const char* text) override;
     virtual void getTextBounds(const String &str, int16_t x, int16_t y, int16_t *x1, int16_t *y1, uint16_t *w, uint16_t *h) override;
     void drawTextInRoundedRect(int16_t x, int16_t y, int16_t w, int16_t h, const String& text, uint16_t bgColor, uint16_t textColor, int16_t radius = 5, int16_t padding_left = 7, int16_t padding_top = 7, uint16_t borderColor = 0);
-    
 
     // Display Info
     int16_t width() override;
@@ -52,8 +53,7 @@ private:
     uint8_t pinCS, pinDC, pinRST, pinBUSY;
     uint8_t pinSCK, pinMISO, pinMOSI, pinSS;
 
-    GxEPD2_3C<GxEPD2_750c, GxEPD2_750c::HEIGHT/2> display;
     //GxEPD2_3C<GxEPD2_750c_Z08, GxEPD2_750c_Z08::HEIGHT/2> display;
-    // Der mit schlechterer Qualität
+    GxEPD2_3C<GxEPD2_750c_86BF, GxEPD2_750c_86BF::HEIGHT/2> display;
     
 };
