@@ -174,7 +174,7 @@ bool setupGoogleAuth() {
         auth.deleteRefreshToken();
     }
 
-    if (!auth.authorize(300)) {
+    if (!auth.authorize(60)) {
         LOG_ERROR("Keinen gültigen Access Token erhalten");
         return false;
     }

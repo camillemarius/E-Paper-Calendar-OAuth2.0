@@ -22,7 +22,7 @@ String AuthDisplay::getTitle() const {
 String AuthDisplay::getDescription() const {
     return "Scanne den QR-Code,\n"
            "um dich bei Google\n"
-           "zu authentifizieren.\n"
+           "zu authentifizieren.\n\n"
            "Gib dazu den Code\n"
            "auf der Webseite ein.";
 }
@@ -42,21 +42,22 @@ void AuthDisplay::drawUserCode(const String& code) {
     m_display.setFont(&FreeSans12pt7b);
     m_display.setTextColor(COLOR_BLACK);
 
-    const char* label = "Device Code:";
-    int16_t x1, y1;
-    uint16_t labelWidth, labelHeight, codeWidth, codeHeight;
+    String text = "Device Code: " + code;
 
-    // "Device Code:" Label ausmessen und zentrieren
-    m_display.getTextBounds(label, 0, 0, &x1, &y1, &labelWidth, &labelHeight);
-    int labelX = (m_display.width() - labelWidth) / 2;
-    int labelY = m_display.height() - 80;  // unten etwas Abstand
-    m_display.setCursor(labelX, labelY);
-    m_display.print(label);
+    // Gleiche Position wie die Beschreibung in drawHeader()
+    const int scale = 7;
+    QRCode qrcode;
+    uint8_t qrcodeBytes[qrcode_getBufferSize(6)];
 
-    // User Code ausmessen und darunter zentrieren
-    m_display.getTextBounds(code, 0, 0, &x1, &y1, &codeWidth, &codeHeight);
-    int codeX = (m_display.width() - codeWidth) / 2;
-    int codeY = labelY + labelHeight + 20;
-    m_display.setCursor(codeX, codeY);
-    m_display.print(code.c_str());
+    qrcode_initText(&qrcode, qrcodeBytes, 6, ECC_LOW, " ");
+
+    int qrPixelSize = qrcode.size * scale;
+
+    const int leftMargin = 40;
+    int textX = leftMargin + qrPixelSize + 10;
+
+    int textY = m_display.height() - 60;
+
+    m_display.setCursor(textX, textY);
+    m_display.print(text.c_str());
 }

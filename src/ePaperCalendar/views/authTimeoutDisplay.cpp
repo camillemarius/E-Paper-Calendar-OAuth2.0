@@ -18,7 +18,7 @@ AuthTimeoutDisplay::AuthTimeoutDisplay(EpaperDriver& display)
     : IDisplay(display) {}
 
 String AuthTimeoutDisplay::getTitle() const {
-    return "Kein WLAN gesetzt";
+    return "Zugriff fehlgeschlagen";
 }
 
 String AuthTimeoutDisplay::getDescription() const {

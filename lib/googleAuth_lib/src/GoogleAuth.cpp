@@ -45,7 +45,7 @@ bool GoogleAuth::authorize(unsigned long maxWaitSeconds) {
 }
 
 String GoogleAuth::getAccessToken() {
-  authorize();
+  authorize(60);
   return _accessToken;
 }
 
