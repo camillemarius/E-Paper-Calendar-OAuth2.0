@@ -115,8 +115,14 @@ bool GoogleCalendar::getEvents(const String& calendarId, std::vector<CalendarEve
     String startOfToday = getISO8601TimeTodayStart();
     //LOG_DEBUG("Abfrage ab: %s", startOfToday.c_str());
 
+    
+    /*String url = "https://www.googleapis.com/calendar/v3/calendars/" + String(calendarId) +
+                 "/events?maxResults=10&orderBy=startTime&singleEvents=true&timeMin=" + String(startOfToday);*/
+    
+    const int MAX_EVENTS = 20;
     String url = "https://www.googleapis.com/calendar/v3/calendars/" + String(calendarId) +
-                 "/events?maxResults=10&orderBy=startTime&singleEvents=true&timeMin=" + String(startOfToday);
+                 "/events?maxResults=" + String(MAX_EVENTS) +
+                 "&orderBy=startTime&singleEvents=true&timeMin=" + String(startOfToday);
 
     HTTPClient http;
     http.begin(url);

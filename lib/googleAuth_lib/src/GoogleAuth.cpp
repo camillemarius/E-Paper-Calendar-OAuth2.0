@@ -14,6 +14,14 @@ bool GoogleAuth::initialize() {
   return _tokenStorage.mount();
 }
 
+void GoogleAuth::onAuthPrompt(AuthPromptCallback cb) { 
+  _authPromptCallback = cb; 
+}
+
+void GoogleAuth::onTimeout(AuthTimeoutCallback cb) {
+    _authTimeoutCallback = cb;
+}
+
 bool GoogleAuth::authorize(unsigned long maxWaitSeconds) {
   if (hasValidAccessToken()) return true;
   if (hasRefreshToken() && refreshAccessToken()) return true;
@@ -22,11 +30,17 @@ bool GoogleAuth::authorize(unsigned long maxWaitSeconds) {
 
   unsigned long start = millis();
   while ((millis() - start) < maxWaitSeconds * 1000UL) {
-    if (pollForToken()) return true;
+    if (pollForToken()) {
+      return true;
+    }
     delay(_interval * 1000);
   }
 
   LOG_WARNING("Timeout bei der Autorisierung.");
+  if (_authTimeoutCallback) {
+    _authTimeoutCallback();
+  }
+
   return false;
 }
 
@@ -44,9 +58,7 @@ void GoogleAuth::deleteRefreshToken() {
     }
 }
 
-void GoogleAuth::onAuthPrompt(AuthPromptCallback cb) { 
-  _authPromptCallback = cb; 
-}
+
 
 
 String GoogleAuth::urlEncode(const String &str) {

@@ -11,6 +11,7 @@
 #include <functional>
 
 using AuthPromptCallback = std::function<void(const String& verificationUrl, const String& userCode)>;
+using AuthTimeoutCallback = std::function<void()>;
 
 class GoogleAuth {
 public:
@@ -19,6 +20,7 @@ public:
     bool authorize(unsigned long maxWaitSeconds = 300);
     String getAccessToken();
     void onAuthPrompt(AuthPromptCallback cb);
+    void onTimeout(AuthTimeoutCallback cb);
     void deleteRefreshToken();
 
 private: 
@@ -47,6 +49,7 @@ private:
     TokenStorage _tokenStorage;
 
     AuthPromptCallback _authPromptCallback;
+    AuthTimeoutCallback _authTimeoutCallback;
 
 };
 
