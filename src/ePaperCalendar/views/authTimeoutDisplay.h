@@ -8,9 +8,9 @@
 // External Library
 #include <string>
 
-class AutTimeoutDisplay : public IDisplay{
+class AuthTimeoutDisplay : public IDisplay{
 public:
-    AutTimeoutDisplay(EpaperDriver& display);
+    AuthTimeoutDisplay(EpaperDriver& display);
 
 protected:
     String getTitle() const override;

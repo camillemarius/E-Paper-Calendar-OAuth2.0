@@ -17,7 +17,7 @@
 #include "CalendarConfigurator/CalendarConfigurator.h"
 #include "views/weeklyCalendarDisplay.h"
 #include "views/authDisplay.h"
-#include "views/autTimeoutDisplay.h"
+#include "views/authTimeoutDisplay.h"
 #include "views/credentialTimeoutDisplay.h"
 #include "views/wifiDisplay.h"
 #include "views/calendarTimeoutDisplay.h"
@@ -70,7 +70,7 @@ CalendarConfigurator calendarConfigurator(calendar);
 // UI
 WeeklyCalendar weeklyCalendar(epaperDisplay);
 AuthDisplay authDisplay(epaperDisplay);
-AutTimeoutDisplay autTimeoutDisplay(epaperDisplay);
+AuthTimeoutDisplay authTimeoutDisplay(epaperDisplay);
 CredentialTimeoutDisplay credentialTimeoutDisplay(epaperDisplay);
 WifiDisplay wifiDisplay(epaperDisplay);
 CalendarTimeoutDisplay calendarTimeoutDisplay(epaperDisplay);
@@ -250,7 +250,7 @@ void setup() {
       authDisplay.showWithUserCode(url, code);
   });
   auth.onTimeout([]() {
-        autTimeoutDisplay.show("");
+        authTimeoutDisplay.show("");
   });
 
   // Connect to Wifi

@@ -1,4 +1,4 @@
-#include "autTimeoutDisplay.h"
+#include "authTimeoutDisplay.h"
 #include <logger.h>
 
 // Local
@@ -14,14 +14,14 @@
 #include <qrcode.h>
 
 
-AutTimeoutDisplay::AutTimeoutDisplay(EpaperDriver& display)
+AuthTimeoutDisplay::AuthTimeoutDisplay(EpaperDriver& display)
     : IDisplay(display) {}
 
-String AutTimeoutDisplay::getTitle() const {
+String AuthTimeoutDisplay::getTitle() const {
     return "Kein WLAN gesetzt";
 }
 
-String AutTimeoutDisplay::getDescription() const {
+String AuthTimeoutDisplay::getDescription() const {
     return "Die Zeit fuer die Google-\n"
            "Authentifizierung ist abgelaufen.\n\n"
            "Der E-Paper-Kalender konnte nicht\n"
