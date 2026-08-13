@@ -18,15 +18,14 @@ CalendarTimeoutDisplay::CalendarTimeoutDisplay(EpaperDriver& display)
     : IDisplay(display) {}
 
 String CalendarTimeoutDisplay::getTitle() const {
-    return "Kalenderauswahl abgelaufen";
+    return "Kalender Auswahl abgelaufen";
 }
 
 String CalendarTimeoutDisplay::getDescription() const {
-    return "Es wurde kein Kalender innerhalb\n"
-           "der vorgegebenen Zeit ausgewählt.\n\n"
-           "Resete den Kalender über den\n"
-           "blauen Button und warte, bis der\n"
-           "QR-Code erneut angezeigt wird.\n"
-           "Wähle dann deinen Kalender zur\n"
-           "Synchronisierung aus.";
+    return "Es wurde kein Kalender ausgewählt.\n\n"
+           "Drücke den Reset-Button und warte,\n"
+           "bis der QR-Code wieder angezeigt\n"
+           "wird.\n\n"
+           "Wähle anschließend deinen Kalender\n"
+           "zur Synchronisierung aus.";
 }

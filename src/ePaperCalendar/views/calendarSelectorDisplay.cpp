@@ -16,16 +16,15 @@ CalendarSelectorDisplay::CalendarSelectorDisplay(EpaperDriver& display)
     : IDisplay(display) {}
 
 String CalendarSelectorDisplay::getTitle() const {
-    return "Google Kalender festlegen";
+    return "Kalender Auswahl";
 }
 
 String CalendarSelectorDisplay::getDescription() const {
-    return "Lege anhand der Liste fest, welche \n"
-           "Google Kalender in der Zukunft\n"
-           "hier angezeigt werden sollen.\n\n"
-           "Dein Telefon, mit dem du den\n"
-           "QR-Code scannst, muss dabei mit\n"
-           "dem selben WLAN verbunden sein\n"
-           "wie der E-Paper-Kalender.\n\n"
+    return "Waehle aus, welche Google Kalender\n"
+           "zukuenftig hier angezeigt werden\n"
+           "sollen.\n\n"
+           "Wichtig: Dein Telefon muss mit dem\n"
+           "gleichen WLAN verbunden sein wie\n"
+           "der E-Paper-Kalender.\n\n"
            "Scanne jetzt den QR-Code.";
 }

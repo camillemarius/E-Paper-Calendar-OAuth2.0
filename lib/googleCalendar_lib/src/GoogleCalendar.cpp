@@ -119,10 +119,29 @@ bool GoogleCalendar::getEvents(const String& calendarId, std::vector<CalendarEve
     /*String url = "https://www.googleapis.com/calendar/v3/calendars/" + String(calendarId) +
                  "/events?maxResults=10&orderBy=startTime&singleEvents=true&timeMin=" + String(startOfToday);*/
     
-    const int MAX_EVENTS = 20;
+    /*const int MAX_EVENTS = 12;
     String url = "https://www.googleapis.com/calendar/v3/calendars/" + String(calendarId) +
                  "/events?maxResults=" + String(MAX_EVENTS) +
-                 "&orderBy=startTime&singleEvents=true&timeMin=" + String(startOfToday);
+                 "&orderBy=startTime&singleEvents=true&timeMin=" + String(startOfToday);*/
+
+    /*-TEST-*/
+    time_t now = time(nullptr);
+    time_t fourDaysLater = now + (4 * 24 * 60 * 60);
+
+    struct tm t;
+    gmtime_r(&fourDaysLater, &t);
+
+    char buf[30];
+    strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%SZ", &t);
+    String endOfRange = String(buf);
+
+    String url = "https://www.googleapis.com/calendar/v3/calendars/" + String(calendarId) +
+                "/events"
+                "?orderBy=startTime"
+                "&singleEvents=true"
+                "&timeMin=" + startOfToday +
+                "&timeMax=" + endOfRange;
+    /*-TEST-*/
 
     HTTPClient http;
     http.begin(url);

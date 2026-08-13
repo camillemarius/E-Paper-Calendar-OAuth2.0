@@ -19,19 +19,17 @@ WifiDisplay::WifiDisplay(EpaperDriver& display)
     : IDisplay(display) {}
 
 String WifiDisplay::getTitle() const {
-    return "WLAN Einrichten";
+    return "WLAN Konfiguration";
 }
 
 String WifiDisplay::getDescription() const {
-    return "Starte die Kamera-App auf deinem\n"
-           "Handy und scanne den QR-Code\n"
-           "des E-Paper Kalenders.\n"
-           "Der QR-Code verbindet dein Handy\n"
-           "automatisch mit dem Kalender.\n"
-           "Dein Handy zeigt dir, dass du\n"
-           "dich Autorisieren musst.\n" 
-           "Tippe auf das Pop-Up und verbinde\n"
-           "dich im Browser mit deinem WLAN,\n"
-           "indem du den WLAN-Namen auswählst\n"
-           "und das Passwort eingibst.";
+    return "Öffne die Kamera-App und scanne\n"
+           "den QR-Code des E-Paper-Kalenders.\n\n"
+           "Dein Handy verbindet sich\n"
+           "automatisch mit dem Kalender und\n"
+           "zeigt dir eine Meldung zur\n"
+           "Autorisierung.\n\n"
+           "Tippe auf die Meldung und wähle im\n"
+           "Browser dein WLAN aus. Gib danach\n"
+           "dein WLAN-Passwort ein.";
 }

@@ -28,6 +28,6 @@ String AuthTimeoutDisplay::getDescription() const {
            "auf deinen Google Kalender\n"
            "zugreifen.\n\n"
            "Um es erneut zu versuchen,\n"
-           "druecke den Knopf auf der\n"
-           "Rueckseite kurz.";
+           "druecke kurz den Knopf auf der\n"
+           "Rueckseite.";
 }

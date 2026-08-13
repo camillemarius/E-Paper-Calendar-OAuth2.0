@@ -18,16 +18,15 @@ CredentialTimeoutDisplay::CredentialTimeoutDisplay(EpaperDriver& display)
     : IDisplay(display) {}
 
 String CredentialTimeoutDisplay::getTitle() const {
-    return "Kein WLAN gesetzt";
+    return "Konfiguration abgelaufen";
 }
 
 String CredentialTimeoutDisplay::getDescription() const {
     return "Es wurde keine WLAN-Verbindung\n"
-           "eingestellt. Der Konfigurations-\n"
+           "eingerichtet. Der Konfigurations-\n"
            "modus ist abgelaufen.\n\n"
-           "Starte den Kalender mit dem\n"
-           "blauen Button neu und warte,\n"
-           "bis wieder ein QR-Code angezeigt\n"
-           "wird. Scanne den QR-Code erneut,\n"
-           "um deine WLAN-Daten einzugeben.";
+           "Drücke den Reset-Button und warte,\n"
+           "bis der QR-Code wieder erscheint.\n\n"
+           "Scanne den QR-Code erneut, um\n"
+           "deine WLAN-Daten einzugeben.";
 }
