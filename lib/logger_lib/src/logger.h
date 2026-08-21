@@ -8,3 +8,5 @@
 #define LOG_ERROR(fmt, ...)   Logger::getInstance().log(Logger::Level::ERROR,   __FILENAME__, __FUNCTION__, fmt, ##__VA_ARGS__)
 
 #define LOG_PLAIN(fmt, ...)   Logger::getInstance().log(Logger::Level::PLAIN, ##__VA_ARGS__)
+
+#define LOG_FS_DEBUG(fmt, ...) Logger::getInstance().logFS(Logger::Level::DEBUG, __FILENAME__, __FUNCTION__, fmt, ##__VA_ARGS__)

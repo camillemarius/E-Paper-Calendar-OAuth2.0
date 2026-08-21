@@ -23,13 +23,13 @@ String WifiDisplay::getTitle() const {
 }
 
 String WifiDisplay::getDescription() const {
-    return "Öffne die Kamera-App und scanne\n"
+    return "Oeffne die Kamera-App und scanne\n"
            "den QR-Code des E-Paper-Kalenders.\n\n"
            "Dein Handy verbindet sich\n"
            "automatisch mit dem Kalender und\n"
            "zeigt dir eine Meldung zur\n"
            "Autorisierung.\n\n"
-           "Tippe auf die Meldung und wähle im\n"
+           "Tippe auf die Meldung und waehle im\n"
            "Browser dein WLAN aus. Gib danach\n"
            "dein WLAN-Passwort ein.";
 }

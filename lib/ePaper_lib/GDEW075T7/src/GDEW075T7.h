@@ -55,5 +55,4 @@ private:
     GxEPD2_3C<GxEPD2_750c, GxEPD2_750c::HEIGHT/2> display;
     //GxEPD2_3C<GxEPD2_750c_Z08, GxEPD2_750c_Z08::HEIGHT/2> display;
     // Der mit schlechterer Qualität
-    
 };

@@ -109,7 +109,12 @@ String GoogleCalendar::getISO8601TimeTodayStart() {
 
 
 bool GoogleCalendar::getEvents(const String& calendarId, std::vector<CalendarEvent>& events) {
+    LOG_FS_DEBUG("========== GOOGLE CALENDAR REQUEST ==========");
+    LOG_FS_DEBUG("Calendar ID: %s", calendarId.c_str());
+
     String token = _auth.getAccessToken();
+
+    LOG_FS_DEBUG("Access Token vorhanden: %s",token.length() > 0 ? "JA" : "NEIN");
 
     // Startzeitpunkt heute (lokale Zeit) als ISO für Google
     String startOfToday = getISO8601TimeTodayStart();
@@ -143,18 +148,56 @@ bool GoogleCalendar::getEvents(const String& calendarId, std::vector<CalendarEve
                 "&timeMax=" + endOfRange;
     /*-TEST-*/
 
+    LOG_FS_DEBUG("timeMin: %s",startOfToday.c_str());
+
+    LOG_FS_DEBUG("timeMax: %s",endOfRange.c_str());
+
+    LOG_FS_DEBUG("Free Heap vor HTTP: %u",ESP.getFreeHeap());
+
+
     HTTPClient http;
-    http.begin(url);
+
+    LOG_FS_DEBUG("HTTP begin()");
+
+    if (!http.begin(url)) {
+        LOG_FS_DEBUG("HTTP begin() FEHLGESCHLAGEN");
+        LOG_ERROR("HTTP begin() fehlgeschlagen");
+        return false;
+    }
     http.addHeader("Authorization", "Bearer " + token);
+    
+    LOG_FS_DEBUG("HTTP GET() gestartet");
 
     int httpCode = http.GET();
+
+    LOG_FS_DEBUG("HTTP GET() beendet: code=%d",httpCode);
+
     if (httpCode != 200) {
-        LOG_ERROR("HTTP Fehler beim Abrufen der Events: %d", httpCode);
+        LOG_FS_DEBUG("GOOGLE CALENDAR REQUEST FEHLGESCHLAGEN");
+        LOG_FS_DEBUG("HTTP Code: %d", httpCode);
+        LOG_FS_DEBUG("Calendar ID: %s", calendarId.c_str());
+        LOG_FS_DEBUG("WiFi Status: %d", WiFi.status());
+        LOG_FS_DEBUG("WiFi RSSI: %d dBm", WiFi.RSSI());
+        LOG_FS_DEBUG("Free Heap: %u", ESP.getFreeHeap());
+
+        // Google Response auslesen
+        String errorPayload = http.getString();
+
+        if (errorPayload.length() > 0) {
+            LOG_FS_DEBUG("Google Response: %s",errorPayload.c_str());
+        }
+        else {
+            LOG_FS_DEBUG("Google Response: <leer>");
+        }
+
         http.end();
         return false;
     }
 
+    LOG_FS_DEBUG("Google Calendar HTTP 200 OK");
+
     String payload = http.getString();
+    LOG_FS_DEBUG("Response Länge: %u Bytes",payload.length());
     http.end();
 
     DynamicJsonDocument doc(16 * 1024);

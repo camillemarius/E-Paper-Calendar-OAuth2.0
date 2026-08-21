@@ -211,6 +211,11 @@ void setup() {
   Serial.begin(115200);
   delay(1000);
 
+  // Logger Setup
+  Logger::getInstance().begin();
+  LOG_FS_DEBUG("========== ESP START ==========");
+  LOG_FS_DEBUG("Free heap: %u", ESP.getFreeHeap());
+
   // Initialize Button
   pinMode(BUTTON_PIN, INPUT_PULLUP);
   esp_sleep_enable_ext0_wakeup(GPIO_NUM_2, 0);  
