@@ -516,13 +516,16 @@ void WeeklyCalendar::drawBatteryBar(int batteryPercent) {
     int x = display.width() - barWidth - 10;
     int y = 10;
     
-    // Äußerer Rahmen (schwarz)
-    display.drawRect(x, y, barWidth, barHeight, COLOR_BLACK);
+    // Farbe basierend auf Akkustand: rot wenn < 5%, sonst schwarz
+    uint16_t barColor = (batteryPercent < 5) ? COLOR_RED : COLOR_BLACK;
     
-    // Innerer Balken basierend auf Akkuprozentsatz (schwarz gefüllt)
+    // Äußerer Rahmen
+    display.drawRect(x, y, barWidth, barHeight, barColor);
+    
+    // Innerer Balken basierend auf Akkuprozentsatz
     int filledWidth = (barWidth * batteryPercent) / 100;
     if (filledWidth > 0) {
-        display.fillRect(x, y, filledWidth, barHeight, COLOR_BLACK);
+        display.fillRect(x, y, filledWidth, barHeight, barColor);
     }
     
     // Batterieknopf oben rechts
@@ -530,7 +533,7 @@ void WeeklyCalendar::drawBatteryBar(int batteryPercent) {
     int nippleY = y + (barHeight / 2) - 2;
     int nippleWidth = 3;
     int nippleHeight = 4;
-    display.fillRect(nippleX, nippleY, nippleWidth, nippleHeight, COLOR_BLACK);
+    display.fillRect(nippleX, nippleY, nippleWidth, nippleHeight, barColor);
 }
 
 void WeeklyCalendar::setBatteryDisplayMode(BatteryDisplayMode mode) {

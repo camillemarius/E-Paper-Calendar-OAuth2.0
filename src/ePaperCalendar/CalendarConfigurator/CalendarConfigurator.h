@@ -44,6 +44,7 @@ private:
     void loadSelectedCalendars();
     void saveBatteryDisplayMode();
     void loadBatteryDisplayMode();
+    void sendStatusPage( const String& title, const String& message, bool success );
 
     GoogleCalendar& _calendar;
     WebServer _server;

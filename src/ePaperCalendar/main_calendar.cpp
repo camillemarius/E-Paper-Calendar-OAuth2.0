@@ -191,7 +191,7 @@ bool setupGoogleAuth() {
 void loadAndDrawCalendar() {
     if (!calendarConfigurator.hasSelectedCalendars()) return;
 
-    // Akkustandsanzeige-Modus vom Configurator zum WeeklyCalendar übertragen
+    // Aktualisiere den Akkuanzeige-Modus
     weeklyCalendar.setBatteryDisplayMode(calendarConfigurator.getBatteryDisplayMode());
 
     std::vector<CalendarEvent> allEvents;

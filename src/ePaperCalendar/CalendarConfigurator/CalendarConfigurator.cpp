@@ -88,7 +88,23 @@ void CalendarConfigurator::setupRoutes() {
 }
 
 void CalendarConfigurator::handleRoot() {
-    String html = "<html><body><h2>Waehle Kalender (Mehrfachauswahl moeglich)</h2>";
+    String html = "<html><head>";
+    html += "<meta name='viewport' content='width=device-width, initial-scale=1'>";
+    html += "<style>";
+    html += "body { font-family: Arial, sans-serif; font-size: 18px; margin: 20px; padding: 10px; background: #f5f5f5; }";
+    html += "h2 { font-size: 28px; margin-bottom: 20px; color: #333; }";
+    html += "h3 { font-size: 22px; margin-top: 20px; margin-bottom: 15px; color: #333; }";
+    html += "p { font-size: 18px; line-height: 1.6; margin: 15px 0; }";
+    html += "b { font-weight: bold; }";
+    html += "hr { margin: 20px 0; border: none; border-top: 2px solid #ccc; }";
+    html += "input[type='checkbox'], input[type='radio'] { width: 20px; height: 20px; margin-right: 10px; cursor: pointer; }";
+    html += "label { display: block; font-size: 18px; margin: 15px 0; padding: 10px; background: white; border-radius: 5px; cursor: pointer; }";
+    html += "input[type='submit'] { font-size: 18px; padding: 15px 30px; margin-top: 20px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; width: 100%; box-sizing: border-box; }";
+    html += "input[type='submit']:active { background: #45a049; }";
+    html += "</style>";
+    html += "</head><body>";
+    
+    html += "<h2>Waehle Kalender (Mehrfachauswahl moeglich)</h2>";
 
     // ---> Google-Account anzeigen
     html += "<p><b>Angemeldeter Google-Account:</b><br>";
@@ -97,26 +113,26 @@ void CalendarConfigurator::handleRoot() {
 
     html += "<form method='POST' action='/select'>";
     for (const auto& c : _availableCalendars) {
-        html += "<input type='checkbox' name='calendarId' value='";
+        html += "<label><input type='checkbox' name='calendarId' value='";
         html += c.id;
         html += "'>";
         html += c.summary;
-        html += "<br>";
+        html += "</label>";
     }
     
     // Akkustandsanzeige-Option
     html += "<hr><h3>Akkustandsanzeige</h3>";
     html += "<label><input type='radio' name='batteryMode' value='0'";
     if (_batteryDisplayMode == BatteryDisplayMode::PERCENT) html += " checked";
-    html += "> Prozent (z.B. 85%)</label><br>";
+    html += "> Prozent (0-100%)</label>";
     
     html += "<label><input type='radio' name='batteryMode' value='1'";
     if (_batteryDisplayMode == BatteryDisplayMode::BAR) html += " checked";
-    html += "> Batteriebalken (voll->leer)</label><br>";
+    html += "> Batteriebalken (voll->leer)</label>";
     
     html += "<label><input type='radio' name='batteryMode' value='2'";
     if (_batteryDisplayMode == BatteryDisplayMode::VOLTAGE) html += " checked";
-    html += "> Spannungsanzeige (z.B. 4.2V)</label><br>";
+    html += "> Spannungsanzeige (3.0-4.2V)</label>";
     
     html += "<input type='submit' value='Speichern'>";
     html += "</form></body></html>";
@@ -141,10 +157,12 @@ void CalendarConfigurator::handleSelect() {
         saveSelectedCalendars();
         saveBatteryDisplayMode();
 
-        _server.send(200, "text/html", "<h3>Kalender und Einstellungen gespeichert.</h3><p>Diese Seite kann nun geschlossen werden.</p>");
-        delay(2000);
-    } else {
-        _server.send(400, "text/plain", "Fehlender Parameter: calendarId");
+        sendStatusPage( "Einstellungen gespeichert", "Kalender und Einstellungen wurden erfolgreich gespeichert.", true ); 
+        delay(2000); 
+    } 
+    else 
+    { 
+        sendStatusPage( "Fehler", "Fehlender Parameter: calendarId", false ); 
     }
 }
 
@@ -154,7 +172,7 @@ void CalendarConfigurator::handleReset() {
     _prefs.end();
     
     _selectedCalendarIds.clear();
-    _server.send(200, "text/html", "<p>Diese Seite kann nun geschlossen werden.</p>");
+    sendStatusPage( "Zurückgesetzt", "Die Kalenderauswahl wurde erfolgreich zurückgesetzt.", true );
 }
 
 
@@ -191,6 +209,33 @@ void CalendarConfigurator::saveBatteryDisplayMode() {
     _prefs.begin("calendar", false);
     _prefs.putUChar("batteryMode", static_cast<unsigned char>(_batteryDisplayMode));
     _prefs.end();
+}
+
+void CalendarConfigurator::sendStatusPage(const String& title, const String& message, bool success) { 
+    String html = "<html><head>"; 
+    html += "<meta name='viewport' content='width=device-width, initial-scale=1'>"; 
+    html += "<style>"; 
+    html += "body { " "font-family: Arial, sans-serif; " "font-size: 18px; " "margin: 20px; " "padding: 10px; " "background: #f5f5f5; " "}"; 
+    html += ".container { " "max-width: 600px; " "margin: 40px auto; " "padding: 25px; " "background: white; " "border-radius: 8px; " "box-shadow: 0 2px 8px rgba(0,0,0,0.1); " "text-align: center; " "}"; 
+    html += "h2 { " "font-size: 28px; " "margin-bottom: 20px; " "color: #333; " "}"; 
+    html += "p { " "font-size: 18px; " "line-height: 1.6; " "margin: 15px 0; " "color: #333; " "}"; 
+    html += ".status { " "font-size: 22px; " "font-weight: bold; " "margin-bottom: 20px; " "}"; 
+    html += ".success { color: #4CAF50; }"; 
+    html += ".error { color: #d32f2f; }"; 
+    html += "</style>"; 
+    html += "</head><body>"; 
+    html += "<div class='container'>"; 
+    html += "<h2>"; 
+    html += title; 
+    html += "</h2>"; 
+    html += "<p class='status "; 
+    html += success ? "success" : "error"; 
+    html += "'>"; 
+    html += message; 
+    html += "</p>"; 
+    html += "<p>Diese Seite kann nun geschlossen werden.</p>"; 
+    html += "</div>"; 
+    html += "</body></html>"; _server.send(success ? 200 : 400, "text/html", html); 
 }
 
 void CalendarConfigurator::loadBatteryDisplayMode() {
