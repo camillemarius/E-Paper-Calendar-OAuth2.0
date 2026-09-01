@@ -6,6 +6,12 @@
 #include <WebServer.h>
 #include "GoogleCalendar.h"
 
+enum class BatteryDisplayMode {
+    PERCENT = 0,    // Prozentanzeige (85%)
+    BAR = 1,        // Batteriebalken (voll->leer)
+    VOLTAGE = 2     // Spannungsanzeige (4.2V)
+};
+
 class CalendarConfigurator {
 public:
     using ServerStartedCallback = std::function<void(const String&)>;
@@ -24,6 +30,9 @@ public:
     bool hasSelectedCalendars() const;
     const std::vector<String>& getSelectedCalendarIds() const;
     void forceSelection();
+    
+    BatteryDisplayMode getBatteryDisplayMode() const;
+    void setBatteryDisplayMode(BatteryDisplayMode mode);
 
 private:
     void setupRoutes();
@@ -33,6 +42,8 @@ private:
 
     void saveSelectedCalendars();
     void loadSelectedCalendars();
+    void saveBatteryDisplayMode();
+    void loadBatteryDisplayMode();
 
     GoogleCalendar& _calendar;
     WebServer _server;
@@ -47,6 +58,7 @@ private:
     int _timeoutSeconds = 120;
     
     String _googleAccountEmail;
+    BatteryDisplayMode _batteryDisplayMode = BatteryDisplayMode::PERCENT;
 
 };
 

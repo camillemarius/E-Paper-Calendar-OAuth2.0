@@ -13,6 +13,7 @@ void CalendarConfigurator::begin() {
     // ---------------------------------------------------
 
     loadSelectedCalendars();
+    loadBatteryDisplayMode();
 
     if (_selectedCalendarIds.empty()) {
         LOG_DEBUG("selectedCalendarIds is empty");
@@ -102,6 +103,21 @@ void CalendarConfigurator::handleRoot() {
         html += c.summary;
         html += "<br>";
     }
+    
+    // Akkustandsanzeige-Option
+    html += "<hr><h3>Akkustandsanzeige</h3>";
+    html += "<label><input type='radio' name='batteryMode' value='0'";
+    if (_batteryDisplayMode == BatteryDisplayMode::PERCENT) html += " checked";
+    html += "> Prozent (z.B. 85%)</label><br>";
+    
+    html += "<label><input type='radio' name='batteryMode' value='1'";
+    if (_batteryDisplayMode == BatteryDisplayMode::BAR) html += " checked";
+    html += "> Batteriebalken (voll->leer)</label><br>";
+    
+    html += "<label><input type='radio' name='batteryMode' value='2'";
+    if (_batteryDisplayMode == BatteryDisplayMode::VOLTAGE) html += " checked";
+    html += "> Spannungsanzeige (z.B. 4.2V)</label><br>";
+    
     html += "<input type='submit' value='Speichern'>";
     html += "</form></body></html>";
     _server.send(200, "text/html", html);
@@ -116,10 +132,16 @@ void CalendarConfigurator::handleSelect() {
             if (_server.argName(i) == "calendarId") {
                 _selectedCalendarIds.push_back(_server.arg(i));
             }
+            // Akkustandsanzeige-Modus speichern
+            if (_server.argName(i) == "batteryMode") {
+                int mode = _server.arg(i).toInt();
+                _batteryDisplayMode = static_cast<BatteryDisplayMode>(mode);
+            }
         }
         saveSelectedCalendars();
+        saveBatteryDisplayMode();
 
-        _server.send(200, "text/html", "<h3>Kalender gespeichert.</h3><p>Diese Seite kann nun geschlossen werden.</p>");
+        _server.send(200, "text/html", "<h3>Kalender und Einstellungen gespeichert.</h3><p>Diese Seite kann nun geschlossen werden.</p>");
         delay(2000);
     } else {
         _server.send(400, "text/plain", "Fehlender Parameter: calendarId");
@@ -163,5 +185,28 @@ void CalendarConfigurator::loadSelectedCalendars() {
         _selectedCalendarIds.push_back(csv.substring(start));
     }
     _prefs.end();
+}
+
+void CalendarConfigurator::saveBatteryDisplayMode() {
+    _prefs.begin("calendar", false);
+    _prefs.putUChar("batteryMode", static_cast<unsigned char>(_batteryDisplayMode));
+    _prefs.end();
+}
+
+void CalendarConfigurator::loadBatteryDisplayMode() {
+    _prefs.begin("calendar", false);
+    unsigned char mode = _prefs.getUChar("batteryMode", static_cast<unsigned char>(BatteryDisplayMode::PERCENT));
+    _batteryDisplayMode = static_cast<BatteryDisplayMode>(mode);
+    LOG_DEBUG("Loaded battery display mode: %d", mode);
+    _prefs.end();
+}
+
+BatteryDisplayMode CalendarConfigurator::getBatteryDisplayMode() const {
+    return _batteryDisplayMode;
+}
+
+void CalendarConfigurator::setBatteryDisplayMode(BatteryDisplayMode mode) {
+    _batteryDisplayMode = mode;
+    saveBatteryDisplayMode();
 }
 
