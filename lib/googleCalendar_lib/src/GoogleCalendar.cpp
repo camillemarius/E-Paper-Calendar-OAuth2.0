@@ -277,8 +277,19 @@ bool GoogleCalendar::getAvailableCalendars(std::vector<CalendarInfo>& outCalenda
     int httpCode = http.GET();
     if (httpCode != 200) {
         LOG_ERROR("HTTP Fehler beim Laden der Kalenderliste: %d", httpCode);
-        http.end();
-        return false;
+        LOG_FS_DEBUG("HTTP Fehler beim Laden der Kalenderliste: %d",httpCode);
+
+    String response = http.getString();
+
+    if (response.length() > 0) {
+        LOG_FS_DEBUG("Google Response: %s",response.c_str());
+    }
+    else {
+        LOG_FS_DEBUG("Google Response: <leer>");
+    }
+
+    http.end();
+    return false;
     }
 
     String payload = http.getString();
@@ -518,6 +529,7 @@ String GoogleCalendar::getUserEmail() {
     DeserializationError err = deserializeJson(doc, payload);
     if (err) {
         LOG_ERROR("JSON Fehler beim Parsen der Userinfo.");
+        LOG_FS_DEBUG("JSON Parsing Fehler beim Abrufen der Events: %s",err.c_str());
         return "";
     }
 

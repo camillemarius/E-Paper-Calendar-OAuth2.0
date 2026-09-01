@@ -113,21 +113,55 @@ String GoogleAuth::getRefreshToken() const {
   return _refreshToken;
 }
 
-bool GoogleAuth::postFormUrlencoded(const String& url, const String& postData, String& responsePayload) {
-  HTTPClient http;
-  http.begin(url);
-  http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+bool GoogleAuth::postFormUrlencoded(
+    const String& url,
+    const String& postData,
+    String& responsePayload
+) {
+    HTTPClient http;
 
-  int httpCode = http.POST(postData);
-  responsePayload = http.getString();
-  http.end();
+    LOG_FS_DEBUG("POST URL: %s", url.c_str());
+    LOG_FS_DEBUG("POST Data: %s", postData.c_str());
 
-  if (httpCode < 200 || httpCode >= 300) {
-    LOG_ERROR("HTTP Fehler %d bei POST zu %s", httpCode, url);
-    return false;
-  }
+    if (!http.begin(url)) {
+        LOG_FS_DEBUG("HTTP begin() fehlgeschlagen für: %s",url.c_str());
 
-  return true;
+        responsePayload = "";
+        return false;
+    }
+
+    http.addHeader(
+        "Content-Type",
+        "application/x-www-form-urlencoded"
+    );
+
+    int httpCode = http.POST(postData);
+
+    responsePayload = http.getString();
+
+    LOG_FS_DEBUG("HTTP POST Code: %d",httpCode
+    );
+
+    LOG_FS_DEBUG("HTTP Response Länge: %u",responsePayload.length()
+    );
+
+    if (responsePayload.length() > 0) {
+        LOG_FS_DEBUG("HTTP Response: %s",responsePayload.c_str()
+        );
+    }
+    else {
+        LOG_FS_DEBUG("HTTP Response: <leer>");
+    }
+
+    http.end();
+
+    if (httpCode < 200 || httpCode >= 300) {
+
+        LOG_FS_DEBUG("HTTP Fehler %d bei POST zu %s",httpCode,url.c_str());
+        return false;
+    }
+
+    return true;
 }
 
 bool GoogleAuth::parseJson(const String& payload, DynamicJsonDocument& doc) {

@@ -31,20 +31,24 @@ bool Logger::begin(const char* filename, size_t maxSize) {
     logFile = filename;
     maxFileSize = maxSize;
 
-    if (!SPIFFS.begin(true)) {
+    fs = nullptr;
+    fileLoggingEnabled = false;
 
-        Serial.println(
-            "[LOGGER] ERROR: SPIFFS initialization failed"
-        );
+    if (!SPIFFS.begin(false)) {
 
+        Serial.println("[LOGGER] ERROR: SPIFFS initialization failed");
         return false;
     }
 
     // SPIFFS als Dateisystem für den Logger verwenden
     fs = &SPIFFS;
 
+    Serial.printf("[LOGGER] SPIFFS mounted. Total=%u Used=%u Free=%u\n",(unsigned)SPIFFS.totalBytes(),(unsigned)SPIFFS.usedBytes(),(unsigned)(SPIFFS.totalBytes() - SPIFFS.usedBytes()));
+
     // Logdatei erstellen, falls sie noch nicht existiert
     if (!fs->exists(logFile)) {
+        
+        Serial.printf("[LOGGER] Creating log file: %s\n",logFile.c_str());
 
         File file = fs->open(
             logFile,
@@ -53,11 +57,10 @@ bool Logger::begin(const char* filename, size_t maxSize) {
 
         if (!file) {
 
-            Serial.println(
-                "[LOGGER] ERROR: Could not create log file"
-            );
+            Serial.println("[LOGGER] ERROR: Could not create log file");
 
             fs = nullptr;
+            fileLoggingEnabled = false;
             return false;
         }
 
@@ -272,109 +275,152 @@ void Logger::logFS(
     }
 }
 
-void Logger::writeToFile(
-    const String& message
-) {
-    if (!fileLoggingEnabled ||
-        fs == nullptr) {
-        return;
-    }
-
-    // Dateigröße prüfen
-    if (fs->exists(logFile)) {
-
-        File file = fs->open(
-            logFile,
-            FILE_READ
-        );
-
-        if (file) {
-
-            size_t size = file.size();
-
-            file.close();
-
-            if (size + message.length() >
-                maxFileSize) {
-
-                trimLogFile();
-            }
-        }
-    }
-
-    // Datei öffnen
-    File file = fs->open(
-        logFile,
-        FILE_APPEND
-    );
-
-    if (!file) {
-
+void Logger::writeToFile(const String& message)
+{
+    if (!fileLoggingEnabled || fs == nullptr) {
         Serial.println(
-            "[LOGGER] ERROR: Could not open log file"
+            "[LOGGER] WRITE ABORTED: logging disabled or fs=null"
         );
-
         return;
     }
 
-    file.print(message);
-
-    file.close();
-}
-
-void Logger::trimLogFile() {
-
-    if (fs == nullptr ||
-        !fs->exists(logFile)) {
+    if (!fs->exists(logFile)) {
+        Serial.println(
+            "[LOGGER] Logfile does not exist!"
+        );
         return;
     }
 
-    File file = fs->open(
-        logFile,
-        FILE_READ
-    );
+    // Aktuelle Dateigröße bestimmen
+    File file = fs->open(logFile, FILE_READ);
 
     if (!file) {
+        Serial.println(
+            "[LOGGER] ERROR: Could not open log file for READ"
+        );
         return;
     }
 
     size_t size = file.size();
-
-    // Ungefähr die Hälfte behalten
-    size_t keepFrom = size / 2;
-
-    file.seek(keepFrom);
-
-    String remaining =
-        file.readString();
-
     file.close();
 
-    // Angefangene Zeile entfernen
-    int newline =
-        remaining.indexOf('\n');
+    // Prüfen, ob vor dem Schreiben getrimmt werden muss
+    if (size + message.length() > maxFileSize) {
 
-    if (newline >= 0) {
+        Serial.printf(
+            "[LOGGER] MAX SIZE: current=%u message=%u max=%u\n",
+            (unsigned)size,
+            (unsigned)message.length(),
+            (unsigned)maxFileSize
+        );
 
-        remaining =
-            remaining.substring(
-                newline + 1
-            );
+        trimLogFile();
     }
 
-    // Datei neu schreiben
-    file = fs->open(
-        logFile,
-        FILE_WRITE
-    );
+    // Datei zum Anhängen öffnen
+    file = fs->open(logFile, FILE_APPEND);
 
     if (!file) {
+        Serial.println(
+            "[LOGGER] ERROR: Could not open log file for APPEND"
+        );
         return;
     }
 
-    file.print(remaining);
+    size_t before = file.size();
+
+    // Nachricht schreiben
+    size_t written = file.print(message);
+
+    // Daten sicher ins Dateisystem schreiben
+    file.flush();
+
+    // Datei schließen
+    file.close();
+
+    // Datei erneut öffnen und tatsächliche Größe prüfen
+    size_t after = 0;
+
+    File checkFile = fs->open(logFile, FILE_READ);
+
+    if (checkFile) {
+        after = checkFile.size();
+        checkFile.close();
+    }
+    else {
+        Serial.println(
+            "[LOGGER] ERROR: Could not reopen log file for SIZE CHECK"
+        );
+    }
+
+    Serial.printf(
+        "[LOGGER] WRITE: before=%u requested=%u written=%u after=%u\n",
+        (unsigned)before,
+        (unsigned)message.length(),
+        (unsigned)written,
+        (unsigned)after
+    );
+}
+
+void Logger::trimLogFile()
+{
+    if (fs == nullptr || !fs->exists(logFile)) {
+        Serial.println("[LOGGER] TRIM ABORTED: file missing");
+        return;
+    }
+
+    File file = fs->open(logFile, FILE_READ);
+
+    if (!file) {
+        Serial.println("[LOGGER] TRIM ERROR: READ open failed");
+        return;
+    }
+
+    size_t oldSize = file.size();
+
+    size_t keepFrom = oldSize / 2;
+
+    file.seek(keepFrom);
+
+    String remaining = file.readString();
 
     file.close();
+
+    int newline = remaining.indexOf('\n');
+
+    if (newline >= 0) {
+        remaining = remaining.substring(newline + 1);
+    }
+
+    file = fs->open(logFile, FILE_WRITE);
+
+    if (!file) {
+        Serial.println("[LOGGER] TRIM ERROR: WRITE open failed");
+        return;
+    }
+
+    size_t written = file.print(remaining);
+
+    file.flush();
+    file.close();
+
+    // tatsächliche Größe nach dem Schreiben prüfen
+    size_t newSize = 0;
+
+    File checkFile = fs->open(logFile, FILE_READ);
+
+    if (checkFile) {
+        newSize = checkFile.size();
+        checkFile.close();
+    }
+
+    Serial.printf(
+        "[LOGGER] TRIM: old=%u kept=%u written=%u new=%u\n",
+        (unsigned)oldSize,
+        (unsigned)remaining.length(),
+        (unsigned)written,
+        (unsigned)newSize
+    );
 }
 
 void Logger::clearLog() {
