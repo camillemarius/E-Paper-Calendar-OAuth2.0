@@ -24,8 +24,17 @@ void GoogleAuth::onTimeout(AuthTimeoutCallback cb) {
 
 bool GoogleAuth::authorize(unsigned long maxWaitSeconds) {
   if (hasValidAccessToken()) return true;
-  if (hasRefreshToken() && refreshAccessToken()) return true;
+  
+  // Wenn Refresh Token existiert, versuchen zu nutzen
+  if (hasRefreshToken()) {
+    if (refreshAccessToken()) {
+      return true;  // Erfolgreich erneuert
+    }
+    // Wenn refresh fehlschlägt, Token wurde in refreshAccessToken() gelöscht
+    LOG_WARNING("Refresh Token ungültig - starte Device Code Flow");
+  }
 
+  // Device Code Flow starten wenn kein Token oder Refresh fehlgeschlagen
   if (!startDeviceCodeFlow()) return false;
 
   unsigned long start = millis();
@@ -249,6 +258,9 @@ bool GoogleAuth::refreshAccessToken() {
                     "&grant_type=refresh_token";
 
   if (!postFormUrlencoded("https://oauth2.googleapis.com/token", postData, payload)) {
+    LOG_WARNING("Refresh Token ist ungültig oder abgelaufen - löschen");
+    _tokenStorage.clearRefreshToken();
+    _refreshToken = "";
     return false;
   }
 

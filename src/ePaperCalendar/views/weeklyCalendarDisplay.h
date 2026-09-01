@@ -8,6 +8,7 @@
 #include <ePaperDriver.h>
 #include <CalendarTypes.h>
 #include <BatteryGauge.h>
+#include "../CalendarConfigurator/CalendarConfigurator.h"
 
 // External Library
 #include <vector>
@@ -19,10 +20,12 @@ class WeeklyCalendar {
 public:
     explicit WeeklyCalendar(EpaperDriver& disp);
     void drawCalendar(const std::vector<CalendarEvent>& events);
+    void setBatteryDisplayMode(BatteryDisplayMode mode);
 
 private:
     EpaperDriver& display;
     BatteryGauge battery;
+    BatteryDisplayMode batteryMode = BatteryDisplayMode::PERCENT;
 
 
     // Außenabstände
@@ -67,7 +70,8 @@ private:
     void drawDayLabels(int y, int height, const std::vector<CalendarEvent>& events, const struct tm& weekStart);
     void drawAllDayEvents(int y, int height, const std::vector<CalendarEvent>& events, const struct tm& weekStart);
     void drawTimedEvents( int y, int height, const std::vector<CalendarEvent>& events, int startHour, int endHour, int hourHeight, const struct tm& weekStart);
-    void drawBatteryLevel(int batteryPercent);
+    void drawBatteryLevel(int batteryPercent, float voltage);
+    void drawBatteryBar(int batteryPercent);
 
 
     //time_t timegm_portable(struct tm *tm);

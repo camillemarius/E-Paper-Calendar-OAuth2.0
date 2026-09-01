@@ -6,6 +6,7 @@
 #include <DateTimeUtils.h>
 #include <CalendarEventFilter.h>
 #include <CalendarLayout.h>
+#include "../CalendarConfigurator/CalendarConfigurator.h"
 
 // External Library
 #include <ctime>
@@ -18,7 +19,7 @@ using namespace DateTimeUtils;
 using namespace CalendarEventFilter;
 
 WeeklyCalendar::WeeklyCalendar(EpaperDriver& disp)
-    : display(disp) {  
+    : display(disp), batteryMode(BatteryDisplayMode::PERCENT) {  
     }
 
 void WeeklyCalendar::drawCalendar(const std::vector<CalendarEvent>& events) {
@@ -47,7 +48,7 @@ void WeeklyCalendar::drawCalendar(const std::vector<CalendarEvent>& events) {
 
     display.firstPage();
     do {
-        drawBatteryLevel(batteryPercent);
+        drawBatteryLevel(batteryPercent, voltage);
         drawDayLabels(layout.headerY, layout.headerHeight, filteredEvents, weekStart);
         drawAllDayEvents(layout.allDayY, layout.allDayHeight, filteredEvents, weekStart);
 
@@ -477,20 +478,66 @@ void WeeklyCalendar::drawDayLabels(int y, int height, const std::vector<Calendar
     }
 }
 
-void WeeklyCalendar::drawBatteryLevel(int batteryPercent) {
+void WeeklyCalendar::drawBatteryLevel(int batteryPercent, float voltage) {
     display.setFont(&FreeSans9pt7b);
     display.setTextColor(COLOR_BLACK);
 
     batteryPercent = constrain(batteryPercent, 0, 100);
-    String text = String(batteryPercent) + "%";
+    
+    // Position rechts oben
+    int x = display.width() - 60;
+    int y = 25;
 
+    // Modus 0: Prozentanzeige
+    if (batteryMode == BatteryDisplayMode::PERCENT) {
+        String text = String(batteryPercent) + "%";
+        display.setCursor(x, y);
+        display.print(text.c_str());
+    }
+    // Modus 1: Batteriebalken
+    else if (batteryMode == BatteryDisplayMode::BAR) {
+        drawBatteryBar(batteryPercent);
+    }
+    // Modus 2: Spannungsanzeige
+    else if (batteryMode == BatteryDisplayMode::VOLTAGE) {
+        char buffer[16];
+        snprintf(buffer, sizeof(buffer), "%.2fV", voltage);
+        display.setCursor(x, y);
+        display.print(buffer);
+    }
+}
 
-    // Position rechts oben (10px vom Rand)
-    int x = display.width() - 30 - text.length() * 6; // 6 px pro Zeichen grob
-    int y = 25; // 15 px von oben
+void WeeklyCalendar::drawBatteryBar(int batteryPercent) {
+    batteryPercent = constrain(batteryPercent, 0, 100);
+    
+    // Batteriebalken-Dimensionen
+    int barWidth = 40;
+    int barHeight = 15;
+    int x = display.width() - barWidth - 10;
+    int y = 10;
+    
+    // Farbe basierend auf Akkustand: rot wenn < 5%, sonst schwarz
+    uint16_t barColor = (batteryPercent < 5) ? COLOR_RED : COLOR_BLACK;
+    
+    // Äußerer Rahmen
+    display.drawRect(x, y, barWidth, barHeight, barColor);
+    
+    // Innerer Balken basierend auf Akkuprozentsatz
+    int filledWidth = (barWidth * batteryPercent) / 100;
+    if (filledWidth > 0) {
+        display.fillRect(x, y, filledWidth, barHeight, barColor);
+    }
+    
+    // Batterieknopf oben rechts
+    int nippleX = x + barWidth;
+    int nippleY = y + (barHeight / 2) - 2;
+    int nippleWidth = 3;
+    int nippleHeight = 4;
+    display.fillRect(nippleX, nippleY, nippleWidth, nippleHeight, barColor);
+}
 
-    display.setCursor(x, y);
-    display.print(text.c_str());
+void WeeklyCalendar::setBatteryDisplayMode(BatteryDisplayMode mode) {
+    batteryMode = mode;
 }
 
 
