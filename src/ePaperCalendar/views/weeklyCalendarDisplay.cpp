@@ -279,8 +279,8 @@ void WeeklyCalendar::drawTimedEvents(int y, int height, const std::vector<Calend
         // --- Trennlinie am oberen Rand des Timed-Event-Bereichs ---
         display.drawLine(originX, y, originX+calendarWidth, y, COLOR_BLACK);
 
-        const char* text1 = "\"Zit zum d Bei ufehebe\"";
-        const char* text2 = "Keine Termine gefunden";
+        const char* text1 = "Keine Termine gefunden";
+        const char* text2 = "";
 
         // Text1-Breite ermitteln
         int16_t x1, y1;
