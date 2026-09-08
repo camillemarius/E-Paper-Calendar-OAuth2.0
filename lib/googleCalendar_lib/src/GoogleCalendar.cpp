@@ -211,7 +211,12 @@ bool GoogleCalendar::getEvents(const String& calendarId, std::vector<CalendarEve
     events.clear();
 
     for (JsonObject item : items) {
-        //LOG_DEBUG("calendarId: %s", calendarId.c_str());
+        // Abgesagte Events nicht an das Display weitergeben
+        const char* status = item["status"] | "";
+        if (strcmp(status, "cancelled") == 0) {
+            LOG_FS_DEBUG("Cancelled Event übersprungen: %s", item["summary"] | "Ohne Titel");
+            continue;
+        }
 
         String title = item["summary"] | "Ohne Titel";
 

@@ -3,6 +3,12 @@
 #include <Arduino.h>
 #include <SPIMemory.h>
 
+// Compile-Error if S1 is already defined
+#ifdef S1
+#undef S1
+#endif
+// Compile-Error if S1 is already defined
+
 class externalFlash {
 private:
     SPIFlash flash;     // Flash driver object
