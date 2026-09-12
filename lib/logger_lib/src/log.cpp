@@ -77,6 +77,28 @@ bool Logger::begin(const char* filename, size_t maxSize) {
     return true;
 }
 
+String Logger::getDateTime()
+{
+    time_t now = time(nullptr);
+
+    struct tm timeinfo;
+
+    if (!localtime_r(&now, &timeinfo)) {
+        return "[0000-00-00 00:00:00]";
+    }
+
+    char buffer[24];
+
+    strftime(
+        buffer,
+        sizeof(buffer),
+        "%Y-%m-%d %H:%M:%S",
+        &timeinfo
+    );
+
+    return String("[") + buffer + "]";
+}
+
 void Logger::log(
     Level level,
     const char* file,
@@ -255,7 +277,8 @@ void Logger::logFS(
     snprintf(
         logBuffer,
         sizeof(logBuffer),
-        "[%s] [%s] [%s] %s\r\n",
+        "%s [%s] [%s] [%s] %s\r\n",
+        getDateTime().c_str(),
         levelToString(level).c_str(),
         className,
         func,

@@ -1,5 +1,6 @@
 #pragma once
 #include <Arduino.h>
+#include <time.h>
 #include <stdarg.h>
 #include <FS.h>
 
@@ -28,6 +29,8 @@ private:
 
     Level currentLevel;
     String levelToString(Level level);
+    
+    String getDateTime();
 
     // File logging
     fs::FS* fs = nullptr;
