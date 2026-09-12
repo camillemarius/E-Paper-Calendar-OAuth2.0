@@ -212,10 +212,40 @@ bool GoogleCalendar::getEvents(const String& calendarId, std::vector<CalendarEve
 
     for (JsonObject item : items) {
         
-        // Abgesagte Events nicht an das Display weitergeben
-        if (item["status"] == "cancelled") {
+        const char* status = item["status"] | "";
+        const char* summary = item["summary"] | "(ohne Titel)";
+        const char* id = item["id"] | "";
+
+        LOG_DEBUG("EVENT: '%s' | status='%s' | id='%s'",summary,status,id);
+
+       // Termin  abgesagt filtern
+        if (strcmp(status, "cancelled") == 0) {
+            LOG_DEBUG("Abgesagtes Event uebersprungen: %s",item["summary"] | "(ohne Titel)");
             continue;
         }
+
+        // Einladung abgelehnt filtern
+        bool declined = false;
+
+        if (item.containsKey("attendees")) {
+            JsonArray attendees = item["attendees"].as<JsonArray>();
+
+            for (JsonObject attendee : attendees) {
+                bool self = attendee["self"] | false;
+                const char* responseStatus = attendee["responseStatus"] | "";
+
+                if (self && strcmp(responseStatus, "declined") == 0) {
+                    declined = true;
+                    break;
+                }
+            }
+        }
+
+        if (declined) {
+            LOG_DEBUG("Eigenes abgelehntes Event uebersprungen: %s", item["summary"] | "(ohne Titel)");
+            continue;
+        }
+
 
         String title = item["summary"] | "Ohne Titel";
 
