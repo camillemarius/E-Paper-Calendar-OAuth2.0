@@ -22,6 +22,11 @@ void GDEW075T7::init() {
     SPI.begin(pinSCK, pinMISO, pinMOSI, pinSS);
 }
 
+void GDEW075T7::hibernate() {
+    LOG_DEBUG("Hibernate display");
+    display.hibernate();
+}
+
 void GDEW075T7::clear() {
     LOG_DEBUG("Clear the screen");
     display.setFullWindow();

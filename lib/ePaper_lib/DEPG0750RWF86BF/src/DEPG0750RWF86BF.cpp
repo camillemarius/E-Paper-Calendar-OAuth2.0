@@ -22,6 +22,11 @@ void DEPG0750RWF86BF::init() {
     SPI.begin(pinSCK, pinMISO, pinMOSI, pinSS);
 }
 
+void DEPG0750RWF86BF::hibernate() {
+    LOG_DEBUG("Hibernate display");
+    display.hibernate();
+}
+
 void DEPG0750RWF86BF::clear() {
     LOG_DEBUG("Clear the screen");
     display.setFullWindow();

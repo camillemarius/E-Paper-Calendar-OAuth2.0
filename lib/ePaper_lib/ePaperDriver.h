@@ -14,6 +14,9 @@ public:
     virtual void firstPage() = 0;
     virtual bool nextPage() = 0;
 
+    // Power: Controller in Deep Sleep (minimaler Ruhestrom), init() weckt ihn per Reset
+    virtual void hibernate() = 0;
+
     // Shapes
     virtual void fillScreen(uint16_t color) = 0;
     virtual void fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color) = 0;

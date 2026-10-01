@@ -22,6 +22,11 @@ void FPC_8612::init() {
     SPI.begin(pinSCK, pinMISO, pinMOSI, pinSS);
 }
 
+void FPC_8612::hibernate() {
+    LOG_DEBUG("Hibernate display");
+    display.hibernate();
+}
+
 void FPC_8612::clear() {
     LOG_DEBUG("Clear the screen");
     display.setFullWindow();

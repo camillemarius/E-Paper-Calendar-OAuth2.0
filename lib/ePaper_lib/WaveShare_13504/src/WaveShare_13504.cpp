@@ -22,6 +22,11 @@ void WaveShare_13504::init() {
     SPI.begin(pinSCK, pinMISO, pinMOSI, pinSS);
 }
 
+void WaveShare_13504::hibernate() {
+    LOG_DEBUG("Hibernate display");
+    display.hibernate();
+}
+
 void WaveShare_13504::clear() {
     LOG_DEBUG("Clear the screen");
     display.setFullWindow();

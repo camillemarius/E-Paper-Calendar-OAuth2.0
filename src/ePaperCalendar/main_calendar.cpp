@@ -76,6 +76,14 @@ WifiDisplay wifiDisplay(epaperDisplay);
 CalendarTimeoutDisplay calendarTimeoutDisplay(epaperDisplay);
 CalendarSelectorDisplay calendarSelectorDisplay(epaperDisplay);
 
+// Funktion: Vorbereitung Deep Sleep
+// GxEPD2 schaltet nach dem Refresh nur die Spannungen ab (powerOff). Erst hibernate()
+// schickt den Display-Controller in Deep Sleep, init() weckt ihn beim nächsten Start per Reset.
+void prepareDeepSleep() {
+    epaperDisplay.hibernate();
+    Serial.flush();
+}
+
 // Funktion: Sleep
 void sleepUntilOneAM() {
     time_t now = time(nullptr);
@@ -104,6 +112,7 @@ void sleepUntilOneAM() {
     LOG_DEBUG("Going to sleep for %ld seconds until 1 AM", sleepSeconds);
     LOG_DEBUG("Going to sleep for %llu micro seconds until 1 AM", sleepMicros);
 
+    prepareDeepSleep();
     esp_sleep_enable_timer_wakeup(sleepMicros);
     //esp_sleep_enable_timer_wakeup(60ULL * 1000000ULL); // 60 Sekunden Test
     esp_deep_sleep_start();
@@ -124,6 +133,7 @@ void sleepForRetry() {
     uint32_t seconds = backoffSeconds[retryCount++];
     LOG_DEBUG("Retry %u/%u in %u seconds", retryCount, maxRetries, seconds);
 
+    prepareDeepSleep();
     esp_sleep_enable_timer_wakeup((uint64_t)seconds * 1000000ULL);
     esp_deep_sleep_start();
 }
@@ -131,6 +141,7 @@ void sleepForRetry() {
 // Funktion: Sleep ohne Timer, nur der Knopf weckt (Benutzeraktion nötig)
 void sleepUntilButtonPress() {
     LOG_DEBUG("Going to sleep until button press");
+    prepareDeepSleep();
     esp_deep_sleep_start();
 }
 

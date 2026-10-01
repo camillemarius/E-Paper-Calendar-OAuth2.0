@@ -21,6 +21,11 @@ void GDEP073E01::init() {
     SPI.begin(pinSCK, pinMISO, pinMOSI, pinSS);
 }
 
+void GDEP073E01::hibernate() {
+    LOG_DEBUG("Hibernate display");
+    display.hibernate();
+}
+
 void GDEP073E01::clear() {
     LOG_DEBUG("Clear the screen");
     display.setFullWindow();
