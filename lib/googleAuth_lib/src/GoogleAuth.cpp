@@ -42,7 +42,13 @@ bool GoogleAuth::authorize(unsigned long maxWaitSeconds, bool allowDeviceFlow) {
   if (!allowDeviceFlow) return false;
 
   // Device Code Flow starten wenn kein Token oder Refresh Token abgelehnt
-  if (!startDeviceCodeFlow()) return false;
+  if (!startDeviceCodeFlow()) {
+    // Hinweis anzeigen, damit der Benutzer es per Knopf erneut versuchen kann
+    if (_authTimeoutCallback) {
+      _authTimeoutCallback();
+    }
+    return false;
+  }
 
   unsigned long start = millis();
   while ((millis() - start) < maxWaitSeconds * 1000UL) {

@@ -13,7 +13,8 @@ public:
     WiFiHandler(int timeout);
 
     // Starts WiFi connection or AP mode if needed
-    bool begin();
+    // allowPortal = false: nur mit gespeicherten Zugangsdaten verbinden, kein AP-Portal
+    bool begin(bool allowPortal = true);
 
     // Register a callback function to be called when AP mode starts
     void onAccessPointStart(APCallback cb);

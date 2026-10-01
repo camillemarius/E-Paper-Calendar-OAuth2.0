@@ -109,6 +109,41 @@ void sleepUntilOneAM() {
     esp_deep_sleep_start();
 }
 
+// Funktion: Sleep nach vorübergehendem Fehler (WLAN, Zeit, Google)
+// Die Anzeige bleibt unverändert, nach 3 Versuchen geht es normal um 1 Uhr weiter.
+RTC_DATA_ATTR uint8_t retryCount = 0;
+void sleepForRetry() {
+    static const uint32_t backoffSeconds[] = {15 * 60, 60 * 60, 3 * 60 * 60};
+    const uint8_t maxRetries = sizeof(backoffSeconds) / sizeof(backoffSeconds[0]);
+
+    if (retryCount >= maxRetries) {
+        retryCount = 0;
+        sleepUntilOneAM();
+    }
+
+    uint32_t seconds = backoffSeconds[retryCount++];
+    LOG_DEBUG("Retry %u/%u in %u seconds", retryCount, maxRetries, seconds);
+
+    esp_sleep_enable_timer_wakeup((uint64_t)seconds * 1000000ULL);
+    esp_deep_sleep_start();
+}
+
+// Funktion: Sleep ohne Timer, nur der Knopf weckt (Benutzeraktion nötig)
+void sleepUntilButtonPress() {
+    LOG_DEBUG("Going to sleep until button press");
+    esp_deep_sleep_start();
+}
+
+// Interaktive Einrichtung (WLAN-Portal, Google-Anmeldung, Kalenderauswahl) nur nach
+// Power-on oder Tastendruck. Beim nächtlichen Timer-Wakeup ist niemand am Gerät.
+bool isInteractiveWakeup() {
+    return wakeupReason != WakeupReason::Timer;
+}
+
+bool isButtonWakeup() {
+    return wakeupReason == WakeupReason::ShortButton2Press || wakeupReason == WakeupReason::LongButton2Press;
+}
+
 // Funktion: Button Wakeup
 void handleButtonWakeup() {
   // Button Wakeup Analyse
@@ -163,41 +198,63 @@ bool setupTime() {
     return (now >= 100000);
 }
 
+enum class SetupResult {
+    Ok,
+    RetryLater,     // vorübergehender Fehler, später automatisch erneut versuchen
+    NeedsUser       // Anmeldung oder Kalenderauswahl durch den Benutzer nötig
+};
+
 // Funktion: Setup Google Auth
-bool setupGoogleAuth() {
+SetupResult setupGoogleAuth() {
     if (!auth.initialize()) {
         LOG_ERROR("Token Storage nicht initialisiert");
-        return false;
+        return SetupResult::RetryLater;
     }
 
     if (wakeupReason == WakeupReason::LongButton2Press) {
         auth.deleteRefreshToken();
     }
 
-    if (!auth.authorize(60)) {
+    if (!auth.authorize(60, isInteractiveWakeup())) {
         LOG_ERROR("Keinen gültigen Access Token erhalten");
-        return false;
+        if (!auth.needsUserAuthorization()) {
+            return SetupResult::RetryLater;
+        }
+        // Beim Timer-Wakeup keinen Device Code Flow starten, nur den Hinweis zeigen
+        if (!isInteractiveWakeup()) {
+            authTimeoutDisplay.show("");
+        }
+        return SetupResult::NeedsUser;
     }
 
-    calendarConfigurator.begin();
-    if (wakeupReason == WakeupReason::ShortButton2Press || wakeupReason == WakeupReason::LongButton2Press) {
+    calendarConfigurator.begin(isInteractiveWakeup() && !isButtonWakeup());
+    if (isButtonWakeup()) {
         calendarConfigurator.forceSelection();
     }
 
-    return true;
+    if (!calendarConfigurator.hasSelectedCalendars()) {
+        // Beim Timer-Wakeup keinen Webserver starten, nur den Hinweis zeigen
+        if (!isInteractiveWakeup()) {
+            calendarTimeoutDisplay.show("");
+        }
+        return SetupResult::NeedsUser;
+    }
+
+    return SetupResult::Ok;
 }
 
 // Funktion: Load & Draw Calendar
-void loadAndDrawCalendar() {
-    if (!calendarConfigurator.hasSelectedCalendars()) return;
-
+// Gibt false zurück, wenn kein einziger Kalender geladen werden konnte (Anzeige bleibt unverändert)
+bool loadAndDrawCalendar() {
     // Aktualisiere den Akkuanzeige-Modus
     weeklyCalendar.setBatteryDisplayMode(calendarConfigurator.getBatteryDisplayMode());
 
     std::vector<CalendarEvent> allEvents;
+    size_t loadedCalendars = 0;
     for (const auto& calendarId : calendarConfigurator.getSelectedCalendarIds()) {
         std::vector<CalendarEvent> events;
         if (calendar.getEvents(calendarId, events)) {
+            loadedCalendars++;
             for (const auto& c : events)
                 LOG_DEBUG("Kalender %s: Event: %s: Date: %s", calendarId.c_str(), c.title.c_str(), c.startISO.c_str());
             allEvents.insert(allEvents.end(), events.begin(), events.end());
@@ -205,7 +262,14 @@ void loadAndDrawCalendar() {
             LOG_ERROR("Fehler beim Laden der Events für Kalender %s", calendarId.c_str());
         }
     }
+
+    if (loadedCalendars == 0) {
+        LOG_ERROR("Keine Kalender geladen - Anzeige bleibt unverändert");
+        return false;
+    }
+
     weeklyCalendar.drawCalendar(allEvents);
+    return true;
 }
 
 void setup() {
@@ -261,26 +325,35 @@ void setup() {
         authTimeoutDisplay.show("");
   });
 
-  // Connect to Wifi
-  if(!wifiHandler.begin()) {
+  // Connect to Wifi (Konfigurationsportal nur bei Power-on oder Tastendruck)
+  if(!wifiHandler.begin(isInteractiveWakeup())) {
     LOG_ERROR("Kein Wifi Verfügbar");
     //digitalWrite(LED_PIN, LOW);
-    sleepUntilOneAM();
-    return;
+    sleepForRetry();
   }
 
   // Schweizer Zeitzone
   if(!setupTime()) {
-    sleepUntilOneAM();
+    sleepForRetry();
   }
 
   // Initialize Google Calendar
-  if(!setupGoogleAuth()) {
-    sleepUntilOneAM();
+  switch (setupGoogleAuth()) {
+    case SetupResult::Ok:
+      break;
+    case SetupResult::RetryLater:
+      sleepForRetry();
+      break;
+    case SetupResult::NeedsUser:
+      sleepUntilButtonPress();
+      break;
   }
 
-  loadAndDrawCalendar();
-  
+  if (!loadAndDrawCalendar()) {
+    sleepForRetry();
+  }
+
+  retryCount = 0;
   sleepUntilOneAM();
 }
 

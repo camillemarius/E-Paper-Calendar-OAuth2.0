@@ -15,11 +15,13 @@ void WiFiHandler::onTimeout(std::function<void()> cb) {
 }
 
 
-bool WiFiHandler::begin() {
+bool WiFiHandler::begin(bool allowPortal) {
     WiFiManager wifiManager;
 
-    wifiManager.setConnectTimeout(30); // Timeout für Verbindungsversuch
+    wifiManager.setConnectTimeout(allowPortal ? 30 : 10); // Timeout für Verbindungsversuch
     wifiManager.setConfigPortalTimeout(m_timeout);
+    // Ohne Portal kehrt autoConnect bei einem Fehler sofort zurück (kein Access Point)
+    wifiManager.setEnableConfigPortal(allowPortal);
     
     // Optional: Nur "WiFi"-Eintrag im Menü anzeigen
     //std::vector<const char*> menu = {"wifi"};
@@ -37,7 +39,8 @@ bool WiFiHandler::begin() {
     //wifiManager.startConfigPortal("E-Paper Kalender", "123456789");
     if (!wifiManager.autoConnect(m_ssid.c_str(), m_password.c_str())) {
         LOG_ERROR("WiFi setup timeout or failed.");
-        if (timeoutCallback) {
+        // Timeout-Anzeige nur, wenn das Portal tatsächlich lief
+        if (allowPortal && timeoutCallback) {
             timeoutCallback(); 
         }
         return false;
