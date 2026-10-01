@@ -22,19 +22,26 @@ void GoogleAuth::onTimeout(AuthTimeoutCallback cb) {
     _authTimeoutCallback = cb;
 }
 
-bool GoogleAuth::authorize(unsigned long maxWaitSeconds) {
+bool GoogleAuth::authorize(unsigned long maxWaitSeconds, bool allowDeviceFlow) {
   if (hasValidAccessToken()) return true;
-  
+
   // Wenn Refresh Token existiert, versuchen zu nutzen
   if (hasRefreshToken()) {
     if (refreshAccessToken()) {
       return true;  // Erfolgreich erneuert
     }
-    // Wenn refresh fehlschlägt, Token wurde in refreshAccessToken() gelöscht
-    LOG_WARNING("Refresh Token ungültig - starte Device Code Flow");
+    // Token noch vorhanden: vorübergehender Fehler (Netzwerk, Timeout, 5xx).
+    // Kein Device Code Flow, später erneut versuchen.
+    if (hasRefreshToken()) {
+      LOG_WARNING("Token-Erneuerung fehlgeschlagen - Refresh Token bleibt erhalten");
+      return false;
+    }
+    LOG_WARNING("Refresh Token von Google abgelehnt - Device Code Flow nötig");
   }
 
-  // Device Code Flow starten wenn kein Token oder Refresh fehlgeschlagen
+  if (!allowDeviceFlow) return false;
+
+  // Device Code Flow starten wenn kein Token oder Refresh Token abgelehnt
   if (!startDeviceCodeFlow()) return false;
 
   unsigned long start = millis();
@@ -54,8 +61,12 @@ bool GoogleAuth::authorize(unsigned long maxWaitSeconds) {
 }
 
 String GoogleAuth::getAccessToken() {
-  authorize(60);
+  authorize(60, false);
   return _accessToken;
+}
+
+bool GoogleAuth::needsUserAuthorization() {
+  return !hasRefreshToken();
 }
 
 void GoogleAuth::deleteRefreshToken() {
@@ -116,7 +127,8 @@ String GoogleAuth::getRefreshToken() const {
 bool GoogleAuth::postFormUrlencoded(
     const String& url,
     const String& postData,
-    String& responsePayload
+    String& responsePayload,
+    int& httpCode
 ) {
     HTTPClient http;
 
@@ -127,6 +139,7 @@ bool GoogleAuth::postFormUrlencoded(
         LOG_FS_DEBUG("HTTP begin() fehlgeschlagen für: %s",url.c_str());
 
         responsePayload = "";
+        httpCode = -1;
         return false;
     }
 
@@ -135,7 +148,7 @@ bool GoogleAuth::postFormUrlencoded(
         "application/x-www-form-urlencoded"
     );
 
-    int httpCode = http.POST(postData);
+    httpCode = http.POST(postData);
 
     responsePayload = http.getString();
 
@@ -177,7 +190,8 @@ bool GoogleAuth::startDeviceCodeFlow() {
   String payload;
   String postData = "client_id=" + _clientId + "&scope=" + urlEncode(_scope);
 
-  if (!postFormUrlencoded("https://oauth2.googleapis.com/device/code", postData, payload)) {
+  int httpCode = 0;
+  if (!postFormUrlencoded("https://oauth2.googleapis.com/device/code", postData, payload, httpCode)) {
     return false;
   }
 
@@ -207,7 +221,8 @@ bool GoogleAuth::pollForToken() {
                       "&device_code=" + _deviceCode +
                       "&grant_type=urn:ietf:params:oauth:grant-type:device_code";
 
-    if (!postFormUrlencoded("https://oauth2.googleapis.com/token", postData, payload)) {
+    int httpCode = 0;
+    if (!postFormUrlencoded("https://oauth2.googleapis.com/token", postData, payload, httpCode)) {
       return false;
     }
 
@@ -257,15 +272,27 @@ bool GoogleAuth::refreshAccessToken() {
                     "&refresh_token=" + _refreshToken +
                     "&grant_type=refresh_token";
 
-  if (!postFormUrlencoded("https://oauth2.googleapis.com/token", postData, payload)) {
-    LOG_WARNING("Refresh Token ist ungültig oder abgelaufen - löschen");
-    _tokenStorage.clearRefreshToken();
-    _refreshToken = "";
+  int httpCode = 0;
+  if (!postFormUrlencoded("https://oauth2.googleapis.com/token", postData, payload, httpCode)) {
+    // Nur löschen, wenn Google den Token ablehnt (widerrufen/abgelaufen).
+    // Netzwerkfehler, Timeouts und 5xx sind vorübergehend: Token behalten.
+    if ((httpCode == 400 || httpCode == 401) && payload.indexOf("invalid_grant") >= 0) {
+      LOG_WARNING("Refresh Token ist ungültig oder abgelaufen - löschen");
+      _tokenStorage.clearRefreshToken();
+      _refreshToken = "";
+    } else {
+      LOG_WARNING("Token-Erneuerung fehlgeschlagen (HTTP %d)", httpCode);
+    }
     return false;
   }
 
   DynamicJsonDocument doc(1024);
   if (!parseJson(payload, doc)) return false;
+
+  if (!doc.containsKey("access_token")) {
+    LOG_ERROR("Antwort enthält keinen Access Token");
+    return false;
+  }
 
   _accessToken = doc["access_token"].as<String>();
   _accessTokenExpiresAt = millis() + ((doc["expires_in"] | 3600) * 1000UL);

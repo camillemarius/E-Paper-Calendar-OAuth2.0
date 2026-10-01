@@ -17,11 +17,14 @@ class GoogleAuth {
 public:
     GoogleAuth(const String& clientId, const String& clientSecret, const String& scope);
     bool initialize();
-    bool authorize(unsigned long maxWaitSeconds = 300);
+    // allowDeviceFlow = false: nur Refresh versuchen, keine Benutzerinteraktion starten
+    bool authorize(unsigned long maxWaitSeconds = 300, bool allowDeviceFlow = true);
     String getAccessToken();
     void onAuthPrompt(AuthPromptCallback cb);
     void onTimeout(AuthTimeoutCallback cb);
     void deleteRefreshToken();
+    // true, wenn kein Refresh Token mehr vorhanden ist (Anmeldung durch den Benutzer nötig)
+    bool needsUserAuthorization();
 
 private: 
     bool hasValidAccessToken() const;
@@ -30,7 +33,7 @@ private:
     bool refreshAccessToken();
     bool startDeviceCodeFlow();
     bool pollForToken();
-    bool postFormUrlencoded(const String& url, const String& postData, String& responsePayload);
+    bool postFormUrlencoded(const String& url, const String& postData, String& responsePayload, int& httpCode);
     bool parseJson(const String& payload, DynamicJsonDocument& doc);
     String urlEncode(const String &str);
 
