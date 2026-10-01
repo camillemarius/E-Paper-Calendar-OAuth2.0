@@ -91,7 +91,25 @@ time_t utcStringtoLocal(const char* utcString) {
 
 GoogleCalendar::GoogleCalendar(GoogleAuth& auth)
   : _auth(auth) {
+    // Wie bisher mit HTTPClient::begin(url): ohne Zertifikatsprüfung
+    _client.setInsecure();
+    _http.setReuse(true);
+}
 
+// GET mit Bearer-Token. Alle Anfragen gehen an www.googleapis.com: die TLS-Verbindung
+// bleibt offen und spart pro weiterem Kalender einen TLS-Handshake.
+int GoogleCalendar::httpGet(const String& url, const String& token, String& payload) {
+    if (!_http.begin(_client, url)) {
+        LOG_ERROR("HTTP begin() fehlgeschlagen");
+        payload = "";
+        return -1;
+    }
+    _http.addHeader("Authorization", "Bearer " + token);
+
+    int httpCode = _http.GET();
+    payload = _http.getString();
+    _http.end();
+    return httpCode;
 }
 
 String GoogleCalendar::getISO8601TimeTodayStart() {
@@ -140,10 +158,14 @@ bool GoogleCalendar::getEvents(const String& calendarId, std::vector<CalendarEve
     strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%SZ", &t);
     String endOfRange = String(buf);
 
+    // maxAttendees=1 liefert nur den eigenen Teilnehmer-Eintrag (für abgelehnte Termine),
+    // fields beschränkt die Antwort auf die verwendeten Felder
     String url = "https://www.googleapis.com/calendar/v3/calendars/" + String(calendarId) +
                 "/events"
                 "?orderBy=startTime"
                 "&singleEvents=true"
+                "&maxAttendees=1"
+                "&fields=items(id,status,summary,start,end,attendees(self,responseStatus))"
                 "&timeMin=" + startOfToday +
                 "&timeMax=" + endOfRange;
     /*-TEST-*/
@@ -154,21 +176,10 @@ bool GoogleCalendar::getEvents(const String& calendarId, std::vector<CalendarEve
 
     LOG_FS_DEBUG("Free Heap vor HTTP: %u",ESP.getFreeHeap());
 
-
-    HTTPClient http;
-
-    LOG_FS_DEBUG("HTTP begin()");
-
-    if (!http.begin(url)) {
-        LOG_FS_DEBUG("HTTP begin() FEHLGESCHLAGEN");
-        LOG_ERROR("HTTP begin() fehlgeschlagen");
-        return false;
-    }
-    http.addHeader("Authorization", "Bearer " + token);
-    
     LOG_FS_DEBUG("HTTP GET() gestartet");
 
-    int httpCode = http.GET();
+    String payload;
+    int httpCode = httpGet(url, token, payload);
 
     LOG_FS_DEBUG("HTTP GET() beendet: code=%d",httpCode);
 
@@ -181,24 +192,19 @@ bool GoogleCalendar::getEvents(const String& calendarId, std::vector<CalendarEve
         LOG_FS_DEBUG("Free Heap: %u", ESP.getFreeHeap());
 
         // Google Response auslesen
-        String errorPayload = http.getString();
-
-        if (errorPayload.length() > 0) {
-            LOG_FS_DEBUG("Google Response: %s",errorPayload.c_str());
+        if (payload.length() > 0) {
+            LOG_FS_DEBUG("Google Response: %s",payload.c_str());
         }
         else {
             LOG_FS_DEBUG("Google Response: <leer>");
         }
 
-        http.end();
         return false;
     }
 
     LOG_FS_DEBUG("Google Calendar HTTP 200 OK");
 
-    String payload = http.getString();
     LOG_FS_DEBUG("Response Länge: %u Bytes",payload.length());
-    http.end();
 
     DynamicJsonDocument doc(16 * 1024);
     DeserializationError error = deserializeJson(doc, payload);
@@ -303,31 +309,22 @@ bool GoogleCalendar::getAvailableCalendars(std::vector<CalendarInfo>& outCalenda
     outCalendars.clear();
     String token = _auth.getAccessToken();  // garantiert gültiger Token
 
-    // Anfrage an Google API
-    HTTPClient http;
-    http.begin("https://www.googleapis.com/calendar/v3/users/me/calendarList");
-    http.addHeader("Authorization", "Bearer " + token);
-
-    int httpCode = http.GET();
+    // Anfrage an Google API (nur die verwendeten Felder)
+    String payload;
+    int httpCode = httpGet("https://www.googleapis.com/calendar/v3/users/me/calendarList?fields=items(id,summary)", token, payload);
     if (httpCode != 200) {
         LOG_ERROR("HTTP Fehler beim Laden der Kalenderliste: %d", httpCode);
         LOG_FS_DEBUG("HTTP Fehler beim Laden der Kalenderliste: %d",httpCode);
 
-    String response = http.getString();
-
-    if (response.length() > 0) {
-        LOG_FS_DEBUG("Google Response: %s",response.c_str());
+    if (payload.length() > 0) {
+        LOG_FS_DEBUG("Google Response: %s",payload.c_str());
     }
     else {
         LOG_FS_DEBUG("Google Response: <leer>");
     }
 
-    http.end();
     return false;
     }
-
-    String payload = http.getString();
-    http.end();
 
     // JSON parsen
     DynamicJsonDocument doc(16 * 1024);
@@ -545,19 +542,12 @@ bool GoogleCalendar::isAllDayEvent(const String& isoStart, const String& isoEnd)
 String GoogleCalendar::getUserEmail() {
     String token = _auth.getAccessToken();
 
-    HTTPClient http;
-    http.begin("https://www.googleapis.com/oauth2/v3/userinfo");
-    http.addHeader("Authorization", "Bearer " + token);
-
-    int httpCode = http.GET();
+    String payload;
+    int httpCode = httpGet("https://www.googleapis.com/oauth2/v3/userinfo", token, payload);
     if (httpCode != 200) {
         LOG_ERROR("Fehler beim Abrufen des User-Infos: %d", httpCode);
-        http.end();
         return "";
     }
-
-    String payload = http.getString();
-    http.end();
 
     DynamicJsonDocument doc(4096);
     DeserializationError err = deserializeJson(doc, payload);

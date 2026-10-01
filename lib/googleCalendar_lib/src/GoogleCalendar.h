@@ -10,6 +10,8 @@
 #include <vector>
 #include <string>
 #include <Arduino.h>
+#include <HTTPClient.h>
+#include <WiFiClientSecure.h>
 
 class GoogleCalendar {
 public:
@@ -23,8 +25,13 @@ private:
     int isoStringToHour(const String& iso);
     int isoStringToWeekday(const String& iso);
     String getISO8601TimeTodayStart();
+    int httpGet(const String& url, const String& token, String& payload);
 
     GoogleAuth& _auth;
     String _calendarListJson;
+
+    // Gemeinsame Verbindung zu www.googleapis.com (Keep-Alive über mehrere Anfragen)
+    WiFiClientSecure _client;
+    HTTPClient _http;
 };
 
