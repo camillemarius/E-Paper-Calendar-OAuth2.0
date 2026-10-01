@@ -19,6 +19,8 @@ public:
   bool getAvailableCalendars(std::vector<CalendarInfo>& outCalendars);
   bool getEvents(const String& calendarId, std::vector<CalendarEvent>& events);
   String getUserEmail();
+  // Gemeinsame TLS-Verbindung schliessen und ihren Speicher freigeben
+  void closeConnection();
 
 private:
     bool isAllDayEvent(const String& isoStart, const String& isoEnd);

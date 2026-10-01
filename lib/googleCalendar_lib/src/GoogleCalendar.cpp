@@ -112,6 +112,10 @@ int GoogleCalendar::httpGet(const String& url, const String& token, String& payl
     return httpCode;
 }
 
+void GoogleCalendar::closeConnection() {
+    _client.stop();
+}
+
 String GoogleCalendar::getISO8601TimeTodayStart() {
     time_t now = time(nullptr);
     struct tm t = *gmtime(&now);

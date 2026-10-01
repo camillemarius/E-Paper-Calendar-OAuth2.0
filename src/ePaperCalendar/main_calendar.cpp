@@ -320,6 +320,7 @@ bool loadAndDrawCalendar() {
     }
 
     // Alle Daten sind im RAM: WLAN aus und CPU drosseln, bevor der lange Display-Refresh startet
+    calendar.closeConnection();
     WiFi.disconnect(true);
     WiFi.mode(WIFI_OFF);
     setCpuFrequencyMhz(80);
