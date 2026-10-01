@@ -27,6 +27,10 @@ void FPC_8612::hibernate() {
     display.hibernate();
 }
 
+void FPC_8612::setBusyCallback(void (*callback)(const void* busyPin)) {
+    display.epd2.setBusyCallback(callback, &pinBUSY);
+}
+
 void FPC_8612::clear() {
     LOG_DEBUG("Clear the screen");
     display.setFullWindow();

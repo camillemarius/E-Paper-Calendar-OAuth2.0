@@ -26,6 +26,10 @@ void GDEP073E01::hibernate() {
     display.hibernate();
 }
 
+void GDEP073E01::setBusyCallback(void (*callback)(const void* busyPin)) {
+    display.epd2.setBusyCallback(callback, &pinBUSY);
+}
+
 void GDEP073E01::clear() {
     LOG_DEBUG("Clear the screen");
     display.setFullWindow();

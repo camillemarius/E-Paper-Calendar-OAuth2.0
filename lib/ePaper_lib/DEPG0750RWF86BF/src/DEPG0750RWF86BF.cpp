@@ -27,6 +27,10 @@ void DEPG0750RWF86BF::hibernate() {
     display.hibernate();
 }
 
+void DEPG0750RWF86BF::setBusyCallback(void (*callback)(const void* busyPin)) {
+    display.epd2.setBusyCallback(callback, &pinBUSY);
+}
+
 void DEPG0750RWF86BF::clear() {
     LOG_DEBUG("Clear the screen");
     display.setFullWindow();

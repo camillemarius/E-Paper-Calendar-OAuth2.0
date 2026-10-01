@@ -1,6 +1,8 @@
 
 // System
 #include <WiFi.h>
+#include <esp_sleep.h>
+#include <driver/gpio.h>
 
 // External Libraries
 #include <qrcode.h>
@@ -75,6 +77,29 @@ CredentialTimeoutDisplay credentialTimeoutDisplay(epaperDisplay);
 WifiDisplay wifiDisplay(epaperDisplay);
 CalendarTimeoutDisplay calendarTimeoutDisplay(epaperDisplay);
 CalendarSelectorDisplay calendarSelectorDisplay(epaperDisplay);
+
+// Funktion: Light Sleep, solange der Display-Controller BUSY meldet
+// Ersetzt das Polling von GxEPD2 (delay(1)) während des ~18 s langen Refreshs.
+// Nur ohne WLAN; geweckt wird beim Pegelwechsel an BUSY, spätestens nach 1 s,
+// damit der Busy-Timeout von GxEPD2 wirksam bleibt.
+void lightSleepWhileDisplayBusy(const void* busyPinParam) {
+    if (WiFi.getMode() != WIFI_OFF) {
+        delay(1);
+        return;
+    }
+
+    const gpio_num_t busyPin = (gpio_num_t)*static_cast<const uint8_t*>(busyPinParam);
+    gpio_wakeup_enable(busyPin, digitalRead(busyPin) == HIGH ? GPIO_INTR_LOW_LEVEL : GPIO_INTR_HIGH_LEVEL);
+    esp_sleep_enable_gpio_wakeup();
+    esp_sleep_enable_timer_wakeup(1000000ULL);
+
+    Serial.flush();
+    esp_light_sleep_start();
+
+    esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_GPIO);
+    esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_TIMER);
+    gpio_wakeup_disable(busyPin);
+}
 
 // Funktion: Vorbereitung Deep Sleep
 // GxEPD2 schaltet nach dem Refresh nur die Spannungen ab (powerOff). Erst hibernate()
@@ -308,6 +333,7 @@ void setup() {
 
   // Initialize e-Paper
   epaperDisplay.init();
+  epaperDisplay.setBusyCallback(lightSleepWhileDisplayBusy);
 
   // Initialize LED
   //pinMode(LED_PIN, OUTPUT);

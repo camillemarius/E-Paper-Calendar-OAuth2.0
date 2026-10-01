@@ -15,6 +15,7 @@ public:
     void init() override;
     void clear() override;
     void hibernate() override;
+    void setBusyCallback(void (*callback)(const void* busyPin)) override;
     void setRotation(int rotation) override;
     void setFullWindow() override;
     void setPartialWindow(int16_t x, int16_t y, int16_t w, int16_t h) override;

@@ -16,6 +16,8 @@ public:
 
     // Power: Controller in Deep Sleep (minimaler Ruhestrom), init() weckt ihn per Reset
     virtual void hibernate() = 0;
+    // Wird beim Warten auf BUSY wiederholt aufgerufen, der Parameter zeigt auf die BUSY-Pinnummer (uint8_t)
+    virtual void setBusyCallback(void (*callback)(const void* busyPin)) = 0;
 
     // Shapes
     virtual void fillScreen(uint16_t color) = 0;
