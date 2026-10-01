@@ -21,11 +21,15 @@ public:
     explicit WeeklyCalendar(EpaperDriver& disp);
     void drawCalendar(const std::vector<CalendarEvent>& events);
     void setBatteryDisplayMode(BatteryDisplayMode mode);
+    void readBattery();
 
 private:
     EpaperDriver& display;
     BatteryGauge battery;
     BatteryDisplayMode batteryMode = BatteryDisplayMode::PERCENT;
+    float batteryVoltage = 0.0f;
+    int batteryPercent = 0;
+    bool batteryRead = false;
 
 
     // Außenabstände

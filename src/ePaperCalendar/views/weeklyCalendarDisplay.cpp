@@ -19,8 +19,20 @@ using namespace DateTimeUtils;
 using namespace CalendarEventFilter;
 
 WeeklyCalendar::WeeklyCalendar(EpaperDriver& disp)
-    : display(disp), batteryMode(BatteryDisplayMode::PERCENT) {  
+    : display(disp), batteryMode(BatteryDisplayMode::PERCENT) {
     }
+
+// Akku lesen, bevor das WLAN Strom zieht: unter Funklast bricht die Zellspannung ein
+void WeeklyCalendar::readBattery() {
+    // Setup i2c
+    if(!battery.begin(21, 22))  { // SDA, SCL
+        LOG_DEBUG("MAX17048 nicht gefunden!");
+    }
+    batteryVoltage = battery.getVoltage();
+    batteryPercent = battery.getPercentage();
+    batteryRead = true;
+    LOG_DEBUG("Voltage: %.3f V\tSOC: %d %%", batteryVoltage, batteryPercent);
+}
 
 void WeeklyCalendar::drawCalendar(const std::vector<CalendarEvent>& events) {
     struct tm today = getTodayAsWeekStart();
@@ -36,19 +48,15 @@ void WeeklyCalendar::drawCalendar(const std::vector<CalendarEvent>& events) {
     int startHour, endHour, hourHeight;
     CalendarEventFilter::calculateTimeRange(layout.gridHeight, filteredEvents, startHour, endHour, hourHeight);
 
-    
-    // Fuel Gauge
-    // Setup i2c
-    if(!battery.begin(21, 22))  { // SDA, SCL
-        LOG_DEBUG("MAX17048 nicht gefunden!");
-    } 
-    float voltage = battery.getVoltage();
-    int batteryPercent = battery.getPercentage();
-    LOG_DEBUG("Voltage: %.3f V\tSOC: %d %%", voltage, batteryPercent);
+
+    // Fuel Gauge (normalerweise schon vor dem WLAN in setup() gelesen)
+    if (!batteryRead) {
+        readBattery();
+    }
 
     display.firstPage();
     do {
-        drawBatteryLevel(batteryPercent, voltage);
+        drawBatteryLevel(batteryPercent, batteryVoltage);
         drawDayLabels(layout.headerY, layout.headerHeight, filteredEvents, weekStart);
         drawAllDayEvents(layout.allDayY, layout.allDayHeight, filteredEvents, weekStart);
 

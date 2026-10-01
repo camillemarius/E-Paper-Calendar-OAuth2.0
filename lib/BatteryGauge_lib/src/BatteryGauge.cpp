@@ -9,11 +9,13 @@ BatteryGauge::BatteryGauge(uint8_t address) {
     _address = address;
 }
 
+// Kein QuickStart in begin(): er verwirft die laufende SOC-Schätzung des MAX17048 und
+// rechnet aus der Momentanspannung neu. Nur beim ersten Einschalten/Akkuwechsel sinnvoll.
+
 // Standard begin mit default Wire
 bool BatteryGauge::begin() {
     _wire = &Wire;
     _wire->begin();
-    quickStart();
     return true;
 }
 
@@ -21,7 +23,6 @@ bool BatteryGauge::begin() {
 bool BatteryGauge::begin(int sdaPin, int sclPin) {
     _wire = &Wire;
     _wire->begin(sdaPin, sclPin);
-    quickStart();
     return true;
 }
 

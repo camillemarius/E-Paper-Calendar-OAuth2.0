@@ -353,6 +353,9 @@ void setup() {
   pinMode(BUTTON_PIN, INPUT_PULLUP);
   esp_sleep_enable_ext0_wakeup(GPIO_NUM_2, 0);  
   
+  // Akku lesen, solange das WLAN noch aus ist (Spannung ohne Funklast)
+  weeklyCalendar.readBattery();
+
   // Initialize WiFi
   setupWiFi();
 
