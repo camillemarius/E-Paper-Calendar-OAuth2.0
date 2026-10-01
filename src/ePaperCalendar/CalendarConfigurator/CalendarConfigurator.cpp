@@ -5,7 +5,7 @@ CalendarConfigurator::CalendarConfigurator(GoogleCalendar& calendar)
     : _calendar(calendar), _server(80), _timeoutCallback(nullptr), _timeoutSeconds(120)  {
     }
 
-void CalendarConfigurator::begin() {
+void CalendarConfigurator::begin(bool allowSelectionPortal) {
     _prefs.begin("calendar", false);
 
     // ---------------------------------------------------
@@ -15,42 +15,55 @@ void CalendarConfigurator::begin() {
     loadSelectedCalendars();
     loadBatteryDisplayMode();
 
-    if (_selectedCalendarIds.empty()) {
-        LOG_DEBUG("selectedCalendarIds is empty");
-        if (!_calendar.getAvailableCalendars(_availableCalendars)) {
-            LOG_ERROR("Fehler beim Laden der Kalender");
-            return;
-        } 
-        for (const auto& c : _availableCalendars) {
-                LOG_DEBUG("%s", c.summary.c_str());
-        }
-        _googleAccountEmail = _calendar.getUserEmail();
-
-
-        setupRoutes();
-        _server.begin();
-        String url = "http://" + WiFi.localIP().toString() + "/";
-        LOG_DEBUG("Webserver gestartet. Öffne %s zur Kalenderauswahl.", url.c_str());
-        
-        if (_serverStartedCallback) {
-            _serverStartedCallback(url);
-        }
-
-        unsigned long startMillis = millis();
-        while (_selectedCalendarIds.empty()) {
-            _server.handleClient();
-            delay(10);
-            if ((millis() - startMillis) / 1000 > _timeoutSeconds) {
-                LOG_ERROR("Kalenderauswahl Timeout erreicht.");
-                if (_timeoutCallback) {
-                    _timeoutCallback();
-                }
-                break;
-            }
-        }
-    } else{
+    if (!_selectedCalendarIds.empty()) {
         LOG_DEBUG("selectedCalendarIds is not empty");
+        return;
     }
+
+    LOG_DEBUG("selectedCalendarIds is empty");
+    if (!allowSelectionPortal) return;
+
+    if (!runSelectionPortal() && _timeoutCallback) {
+        _timeoutCallback();
+    }
+}
+
+// Startet den Webserver zur Kalenderauswahl und wartet auf eine Auswahl oder den Timeout.
+// Gibt true zurück, wenn eine neue Auswahl gespeichert wurde.
+bool CalendarConfigurator::runSelectionPortal() {
+    if (!_calendar.getAvailableCalendars(_availableCalendars)) {
+        LOG_ERROR("Fehler beim Laden der Kalender");
+        return false;
+    }
+    for (const auto& c : _availableCalendars) {
+            LOG_DEBUG("%s", c.summary.c_str());
+    }
+    _googleAccountEmail = _calendar.getUserEmail();
+
+    if (!_routesRegistered) {
+        setupRoutes();
+        _routesRegistered = true;
+    }
+    _server.begin();
+    String url = "http://" + WiFi.localIP().toString() + "/";
+    LOG_DEBUG("Webserver gestartet. Öffne %s zur Kalenderauswahl.", url.c_str());
+
+    if (_serverStartedCallback) {
+        _serverStartedCallback(url);
+    }
+
+    unsigned long startMillis = millis();
+    while (_selectedCalendarIds.empty()) {
+        _server.handleClient();
+        delay(10);
+        if ((millis() - startMillis) / 1000 > _timeoutSeconds) {
+            LOG_ERROR("Kalenderauswahl Timeout erreicht.");
+            break;
+        }
+    }
+    _server.stop();
+
+    return !_selectedCalendarIds.empty();
 }
 
 void CalendarConfigurator::onServerStarted(ServerStartedCallback cb) {
@@ -74,12 +87,21 @@ const std::vector<String>& CalendarConfigurator::getSelectedCalendarIds() const 
 }
 
 void CalendarConfigurator::forceSelection() {
-    _prefs.begin("calendar", false);
-    _prefs.remove("calendarIds");
-    _prefs.end();
-
+    // Die gespeicherte Auswahl bleibt erhalten, bis eine neue gespeichert wird.
+    // Läuft die Auswahl ab, werden die bisherigen Kalender weiter angezeigt.
+    std::vector<String> previous = _selectedCalendarIds;
     _selectedCalendarIds.clear();
-    begin();  // startet Auswahl neu
+
+    if (runSelectionPortal()) return;
+
+    if (previous.empty()) {
+        if (_timeoutCallback) {
+            _timeoutCallback();
+        }
+    } else {
+        LOG_DEBUG("Keine neue Auswahl - bisherige Kalender bleiben aktiv");
+        _selectedCalendarIds = previous;
+    }
 }
 void CalendarConfigurator::setupRoutes() {
     _server.on("/", HTTP_GET, [this]() { handleRoot(); });

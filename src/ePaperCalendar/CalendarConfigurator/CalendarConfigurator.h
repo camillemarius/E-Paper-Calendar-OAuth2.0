@@ -19,7 +19,8 @@ public:
 
     explicit CalendarConfigurator(GoogleCalendar& calendar);
 
-    void begin();
+    // allowSelectionPortal = false: ohne gespeicherte Auswahl keinen Webserver starten
+    void begin(bool allowSelectionPortal = true);
 
     void onServerStarted(ServerStartedCallback cb);
     void onTimeout(TimeoutCallback cb);
@@ -35,6 +36,7 @@ public:
     void setBatteryDisplayMode(BatteryDisplayMode mode);
 
 private:
+    bool runSelectionPortal();
     void setupRoutes();
     void handleRoot();
     void handleSelect();
@@ -57,7 +59,8 @@ private:
     TimeoutCallback _timeoutCallback = nullptr;
 
     int _timeoutSeconds = 120;
-    
+    bool _routesRegistered = false;
+
     String _googleAccountEmail;
     BatteryDisplayMode _batteryDisplayMode = BatteryDisplayMode::PERCENT;
 
