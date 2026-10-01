@@ -21,6 +21,9 @@ public:
     void onTimeout(TimeoutCallback cb);
 
 private:
+    bool fastConnect(WiFiManager& wifiManager);
+    void rememberAccessPoint();
+
     APCallback userCallback;
     TimeoutCallback timeoutCallback;
 

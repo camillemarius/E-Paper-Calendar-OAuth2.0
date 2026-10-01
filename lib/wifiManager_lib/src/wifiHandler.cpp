@@ -1,6 +1,13 @@
 #include "WiFiHandler.h"
 #include <WiFi.h>  // Use <ESP8266WiFi.h> for ESP8266
+#include <esp_wifi.h>
 #include <logger.h>
+
+// Kanal und BSSID des letzten Access Points überleben den Deep Sleep im RTC-Speicher.
+// Damit entfällt beim nächsten Wakeup der Kanal-Scan.
+RTC_DATA_ATTR static uint8_t rtcChannel = 0;
+RTC_DATA_ATTR static uint8_t rtcBssid[6];
+static const unsigned long FAST_CONNECT_TIMEOUT_MS = 5000;
 
 WiFiHandler::WiFiHandler(int timeout) : userCallback(nullptr), timeoutCallback(nullptr),
                 m_encryption("WPA"),m_ssid("E-Paper Kalender"), m_password("123456789"),
@@ -15,8 +22,44 @@ void WiFiHandler::onTimeout(std::function<void()> cb) {
 }
 
 
+// Verbindet direkt mit Kanal und BSSID vom letzten Mal (ohne Scan).
+bool WiFiHandler::fastConnect(WiFiManager& wifiManager) {
+    if (rtcChannel == 0) return false;
+
+    String ssid = wifiManager.getWiFiSSID(true);
+    String pass = wifiManager.getWiFiPass(true);
+    if (ssid.isEmpty()) return false;
+
+    // Kanal/BSSID nur im RAM setzen: die gespeicherte WLAN-Konfiguration bleibt unverändert
+    esp_wifi_set_storage(WIFI_STORAGE_RAM);
+    WiFi.begin(ssid.c_str(), pass.c_str(), rtcChannel, rtcBssid);
+    bool connected = (WiFi.waitForConnectResult(FAST_CONNECT_TIMEOUT_MS) == WL_CONNECTED);
+    if (!connected) {
+        LOG_WARNING("Schnellverbindung fehlgeschlagen - normaler Verbindungsaufbau");
+        rtcChannel = 0;
+        WiFi.disconnect();
+        // Laufende Konfiguration wieder ohne Kanal/BSSID, damit WiFiManager normal sucht
+        WiFi.begin(ssid.c_str(), pass.c_str(), 0, nullptr, false);
+    }
+    esp_wifi_set_storage(WIFI_STORAGE_FLASH);
+    return connected;
+}
+
+void WiFiHandler::rememberAccessPoint() {
+    const uint8_t* bssid = WiFi.BSSID();
+    if (bssid == nullptr) return;
+    memcpy(rtcBssid, bssid, sizeof(rtcBssid));
+    rtcChannel = WiFi.channel();
+}
+
 bool WiFiHandler::begin(bool allowPortal) {
     WiFiManager wifiManager;
+
+    if (fastConnect(wifiManager)) {
+        LOG_INFO("WiFi connected (Kanal %u, ohne Scan).", rtcChannel);
+        LOG_INFO("IP Address: %s", WiFi.localIP().toString().c_str());
+        return true;
+    }
 
     wifiManager.setConnectTimeout(allowPortal ? 30 : 10); // Timeout für Verbindungsversuch
     wifiManager.setConfigPortalTimeout(m_timeout);
@@ -47,6 +90,7 @@ bool WiFiHandler::begin(bool allowPortal) {
     }
 
     if (WiFi.status() == WL_CONNECTED) {
+        rememberAccessPoint();
         LOG_INFO("WiFi connected.");
         LOG_INFO("IP Address: %s", WiFi.localIP().toString().c_str());
         return true;
