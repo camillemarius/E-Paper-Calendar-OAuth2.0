@@ -51,6 +51,7 @@ WiFiHandler wifiHandler(180);
     GDEP073E01 epaperDisplay(27, 14, 12, 13, 18, 19, 23, 27);
 #endif
 
+#define TIMEZONE "CET-1CEST,M3.5.0/2,M10.5.0/3"   // Schweizer Zeitzone
 #define LED_PIN 32   // GPIO32
 #define BUTTON_PIN 2
 #define LONG_BUTTON_PRESS_TIME 5000   // 2 Sekunden
@@ -109,6 +110,13 @@ void prepareDeepSleep() {
     Serial.flush();
 }
 
+// Tag (lokal), für den zuletzt gezeichnet wurde. Überlebt den Deep Sleep.
+RTC_DATA_ATTR int lastRenderedDay = -1;
+
+int localDayKey(const struct tm& t) {
+    return (t.tm_year + 1900) * 1000 + t.tm_yday;
+}
+
 // Funktion: Sleep
 void sleepUntilOneAM() {
     time_t now = time(nullptr);
@@ -120,15 +128,22 @@ void sleepUntilOneAM() {
         timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday,
         timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
 
+    // Der Deep-Sleep-Timer läuft auf dem internen RC-Oszillator und driftet. Wacht der ESP
+    // kurz vor 1 Uhr auf, wurde der heutige Tag bereits gezeichnet: dann erst morgen wieder.
+    const bool todayRendered = (localDayKey(timeinfo) == lastRenderedDay);
+
     // Berechne Zeitpunkt der nächsten 1 Uhr nachts
     timeinfo.tm_hour = 1;
     timeinfo.tm_min = 0;
     timeinfo.tm_sec = 0;
+    timeinfo.tm_isdst = -1;
 
     time_t wakeupTime = mktime(&timeinfo);
-    if (wakeupTime <= now) {
-        // Wenn 1 Uhr heute schon vorbei ist, auf morgen 1 Uhr setzen
-        wakeupTime += 24 * 3600; 
+    if (wakeupTime <= now || todayRendered) {
+        // Morgen 1 Uhr (über tm_mday, damit die Umstellung Sommer-/Winterzeit stimmt)
+        timeinfo.tm_mday += 1;
+        timeinfo.tm_isdst = -1;
+        wakeupTime = mktime(&timeinfo);
     }
 
     time_t sleepSeconds = wakeupTime - now;
@@ -218,7 +233,7 @@ void setupWiFi() {
 
 // Funktion: Setup Time (NTP)
 bool setupTime() {
-    configTzTime("CET-1CEST,M3.5.0/2,M10.5.0/3", "pool.ntp.org", "time.nist.gov");
+    configTzTime(TIMEZONE, "pool.ntp.org", "time.nist.gov");
 
     LOG_DEBUG("Wait for NTP Sync");
     int attempts = 0;
@@ -310,6 +325,11 @@ bool loadAndDrawCalendar() {
     setCpuFrequencyMhz(80);
 
     weeklyCalendar.drawCalendar(allEvents);
+
+    time_t now = time(nullptr);
+    struct tm local;
+    localtime_r(&now, &local);
+    lastRenderedDay = localDayKey(local);
     return true;
 }
 
@@ -318,6 +338,10 @@ void setup() {
   // Initialize Serial for Debugging
   Serial.begin(115200);
   delay(1000);
+
+  // Die RTC-Uhr läuft im Deep Sleep weiter, die Zeitzone muss nach jedem Start neu gesetzt werden
+  setenv("TZ", TIMEZONE, 1);
+  tzset();
 
   // Logger Setup
   Logger::getInstance().begin();
