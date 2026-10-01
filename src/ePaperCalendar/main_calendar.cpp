@@ -337,14 +337,15 @@ void setup() {
 
   // Initialize Serial for Debugging
   Serial.begin(115200);
-  delay(1000);
 
   // Die RTC-Uhr läuft im Deep Sleep weiter, die Zeitzone muss nach jedem Start neu gesetzt werden
   setenv("TZ", TIMEZONE, 1);
   tzset();
 
   // Logger Setup
+#if LOG_FS_ENABLED
   Logger::getInstance().begin();
+#endif
   LOG_FS_DEBUG("========== ESP START ==========");
   LOG_FS_DEBUG("Free heap: %u", ESP.getFreeHeap());
 

@@ -138,8 +138,8 @@ bool GoogleAuth::postFormUrlencoded(
 ) {
     HTTPClient http;
 
+    // POST-Daten nicht loggen: enthalten client_secret und Refresh Token
     LOG_FS_DEBUG("POST URL: %s", url.c_str());
-    LOG_FS_DEBUG("POST Data: %s", postData.c_str());
 
     if (!http.begin(url)) {
         LOG_FS_DEBUG("HTTP begin() fehlgeschlagen für: %s",url.c_str());
@@ -164,19 +164,13 @@ bool GoogleAuth::postFormUrlencoded(
     LOG_FS_DEBUG("HTTP Response Länge: %u",responsePayload.length()
     );
 
-    if (responsePayload.length() > 0) {
-        LOG_FS_DEBUG("HTTP Response: %s",responsePayload.c_str()
-        );
-    }
-    else {
-        LOG_FS_DEBUG("HTTP Response: <leer>");
-    }
-
     http.end();
 
     if (httpCode < 200 || httpCode >= 300) {
 
         LOG_FS_DEBUG("HTTP Fehler %d bei POST zu %s",httpCode,url.c_str());
+        // Nur Fehlerantworten loggen: erfolgreiche Antworten enthalten Access/Refresh Token
+        LOG_FS_DEBUG("HTTP Response: %s", responsePayload.length() > 0 ? responsePayload.c_str() : "<leer>");
         return false;
     }
 
