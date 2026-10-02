@@ -73,6 +73,24 @@ Stand: 02.10.2026. Das 7,3″-Panel lief an der Universal-Platine bisher nicht.
   `Gallery_UniversalDriverCACH_GDEP073E01` nutzt diese Pins bereits.
 - Noch nicht korrigiert, Hinweis an der Stelle in `src/ePaperCalendar/main_calendar.cpp`.
 
+## Änderungen für Revision 01
+
+Gesammelt aus den Befunden oben und dem Changelog im Schema (Revision 00).
+
+1. **X4 Pin 32/31:** Netznamen VSH_LV/VSH_LV2 in **VSL_LV/VSL_LV2** ändern. Nach dem Kompilieren
+   prüfen, dass jedes der sechs Netze VSH_50, VSH_LV, VSH_LV2, VSL_50, VSL_LV und VSL_LV2 genau
+   einen X4-Pin und einen 10-µF-Kondensator hat. Rev 01 ist damit der erste Test des Zweigs _50,
+   auf Rev 00 lief er nie ohne Kurzschluss.
+2. **R10 (Strombegrenzung des TPS2113A):** 1 kΩ begrenzt auf 0,5 A, beim Start zieht die Platine
+   mehr. 560 Ω (etwa 0,9 A) funktioniert, das Datenblatt empfiehlt 400 Ω (etwa 1,25 A).
+3. **R47 entfernen:** Der Spannungsteiler lässt die PG-LED dauernd leuchten.
+4. **L3 und L6:** Im Schema steht bereits NRS4018T100MDGJ, auf Rev 00 war ein falsches Bauteil
+   bestückt. Prüfen, dass Stückliste und Bestückungsauftrag das richtige Bauteil enthalten.
+5. **Pull-up 10 kΩ von `CS_Flash` auf +3V3_FLASH**, damit U6 beim Start und im Deep Sleep
+   abgewählt bleibt (siehe „Flash U6 ohne Pull-up auf CS“).
+6. **S6:** Werkseinstellung 0,47 Ω, oder die Stellungen auf dem Bestückungsdruck beschriften
+   (siehe „RESE-Schalter S6“).
+
 ## Prüfungen auf dem Gerät
 
 - **Flash U6:** JEDEC-ID `EF 40 15`, Löschen, Schreiben und Rücklesen eines Testsektors bestanden.
