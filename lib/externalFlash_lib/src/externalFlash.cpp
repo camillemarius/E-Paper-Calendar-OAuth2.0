@@ -90,14 +90,42 @@ bool externalFlash::readImage(uint32_t offset, uint8_t* buffer, size_t len)
     );
 }
 
+bool externalFlash::eraseArea(uint32_t offset, size_t len)
+{
+    // Bereich auf ganze 4-KB-Sektoren erweitern, wo möglich 64-KB-Blöcke löschen.
+    // (SPIFlash::eraseSection rundet die Grösse ab und lässt den Rest stehen.)
+    constexpr uint32_t SECTOR = 4096;
+    constexpr uint32_t BLOCK = 65536;
+
+    uint32_t addr = (baseAddr + offset) & ~(SECTOR - 1);
+    const uint32_t end = (baseAddr + offset + len + SECTOR - 1) & ~(SECTOR - 1);
+
+    while (addr < end)
+    {
+        const bool wholeBlock = (addr % BLOCK == 0) && (addr + BLOCK <= end);
+        const bool ok = wholeBlock ? flash.eraseBlock64K(addr) : flash.eraseSector(addr);
+        if (!ok)
+        {
+            LOG_ERROR("Flash erase failed at address 0x%X", (unsigned)addr);
+            return false;
+        }
+        addr += wholeBlock ? BLOCK : SECTOR;
+    }
+
+    return true;
+}
+
 void externalFlash::test()
 {
     const char testMsg[] = "Hello Flash!";
     size_t len = sizeof(testMsg);
 
-    LOG_DEBUG("Writing test string...");
+    // Letzter Sektor des Chips: ausserhalb des Bildbereichs ab Adresse 0
+    const uint32_t testOffset = flash.getCapacity() - 4096 - baseAddr;
 
-    if (!writeData(0, (const uint8_t*)testMsg, len))
+    LOG_DEBUG("Writing test string at 0x%X...", (unsigned)(baseAddr + testOffset));
+
+    if (!eraseArea(testOffset, len) || !writeData(testOffset, (const uint8_t*)testMsg, len))
     {
         LOG_DEBUG("Write failed!");
         return;
@@ -107,7 +135,7 @@ void externalFlash::test()
 
     char buffer[32] = {0};
 
-    if (!readData(0, (uint8_t*)buffer, len))
+    if (!readData(testOffset, (uint8_t*)buffer, len))
     {
         LOG_DEBUG("Read failed!");
         return;

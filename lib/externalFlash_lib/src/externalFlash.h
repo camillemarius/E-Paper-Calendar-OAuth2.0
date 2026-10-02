@@ -33,6 +33,9 @@ public:
     // Read large buffer from flash
     bool readImage(uint32_t offset, uint8_t* buffer, size_t len);
 
-    // Simple test: write and read back a string
+    // Erase the sectors covering [offset, offset + len) before writing (NOR flash: 1 -> 0 only)
+    bool eraseArea(uint32_t offset, size_t len);
+
+    // Simple test: write and read back a string in the last sector (outside the image area)
     void test();
 };
