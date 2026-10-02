@@ -8,7 +8,16 @@ externalFlash::externalFlash(uint8_t csPin, uint32_t base)
 
 bool externalFlash::begin()
 {
-    if (flash.begin())
+    bool ready = flash.begin();
+    if (!ready)
+    {
+        // Die Kalender-Firmware legt den Flash in Deep Power-Down. SPIFlash::begin()
+        // weckt ihn nicht selbst auf, deshalb Release (0xAB) senden und erneut versuchen.
+        flash.powerUp();
+        ready = flash.begin();
+    }
+
+    if (ready)
     {
         LOG_DEBUG("External flash initialized!");
         LOG_DEBUG("Chip ID: 0x");

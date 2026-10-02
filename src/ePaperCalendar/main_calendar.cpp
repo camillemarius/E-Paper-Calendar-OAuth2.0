@@ -1,6 +1,7 @@
 
 // System
 #include <WiFi.h>
+#include <SPI.h>
 #include <esp_sleep.h>
 #include <driver/gpio.h>
 
@@ -54,6 +55,7 @@ WiFiHandler wifiHandler(180);
 #define TIMEZONE "CET-1CEST,M3.5.0/2,M10.5.0/3"   // Schweizer Zeitzone
 #define LED_PIN 32   // GPIO32
 #define BUTTON_PIN 2
+#define EXT_FLASH_CS BUTTON_PIN   // Universal-Platine: CS des Galerie-Flash, geteilt mit dem Knopf
 #define LONG_BUTTON_PRESS_TIME 5000   // 2 Sekunden
 
 enum class WakeupReason {
@@ -80,7 +82,7 @@ CalendarTimeoutDisplay calendarTimeoutDisplay(epaperDisplay);
 CalendarSelectorDisplay calendarSelectorDisplay(epaperDisplay);
 
 // Funktion: Light Sleep, solange der Display-Controller BUSY meldet
-// Ersetzt das Polling von GxEPD2 (delay(1)) während des ~18 s langen Refreshs.
+// Ersetzt das Polling von GxEPD2 (delay(1)) während des 18–24 s langen Refreshs.
 // Nur ohne WLAN; geweckt wird beim Pegelwechsel an BUSY, spätestens nach 1 s,
 // damit der Busy-Timeout von GxEPD2 wirksam bleibt.
 void lightSleepWhileDisplayBusy(const void* busyPinParam) {
@@ -100,6 +102,43 @@ void lightSleepWhileDisplayBusy(const void* busyPinParam) {
     esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_GPIO);
     esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_TIMER);
     gpio_wakeup_disable(busyPin);
+}
+
+// Funktion: Ein Befehl an den externen SPI-Flash
+// CS wird nur aktiv auf Low gezogen und über den Pull-up wieder High: wird dabei der Knopf
+// gedrückt (zieht GPIO2 auf GND), entsteht kein Kurzschluss.
+void extFlashCommand(uint8_t command, uint8_t* response = nullptr, size_t responseLen = 0) {
+    SPI.beginTransaction(SPISettings(1000000, MSBFIRST, SPI_MODE0));
+    digitalWrite(EXT_FLASH_CS, LOW);
+    pinMode(EXT_FLASH_CS, OUTPUT);
+    SPI.transfer(command);
+    for (size_t i = 0; i < responseLen; i++) {
+        response[i] = SPI.transfer(0x00);
+    }
+    pinMode(EXT_FLASH_CS, INPUT_PULLUP);
+    SPI.endTransaction();
+    delayMicroseconds(50);   // Anstieg über den Pull-up und Release-/Power-Down-Zeit des Flash
+}
+
+// Funktion: Externen SPI-Flash in Deep Power-Down
+// Auf der Universal-Platine hängt der Bild-Flash der Galerie am SPI-Bus des Displays. Der
+// Kalender nutzt ihn nicht, im Standby zieht er aber rund um die Uhr Strom. Im Deep
+// Power-Down (0xB9) bleibt er, bis er wieder 0xAB erhält oder die Platine stromlos wird.
+void powerDownExternalFlash() {
+    if (digitalRead(EXT_FLASH_CS) == LOW) {
+        return;   // Knopf gedrückt: CS ist belegt, beim nächsten Start erneut
+    }
+
+    extFlashCommand(0xAB);                      // Release, falls er schon schläft (sonst keine ID)
+    uint8_t jedec[3] = {0};
+    extFlashCommand(0x9F, jedec, sizeof(jedec));
+    if (jedec[0] == 0x00 || jedec[0] == 0xFF) {
+        LOG_DEBUG("Kein externer SPI-Flash gefunden");
+        return;
+    }
+
+    extFlashCommand(0xB9);
+    LOG_DEBUG("Externer SPI-Flash (JEDEC %02X %02X %02X) in Deep Power-Down", jedec[0], jedec[1], jedec[2]);
 }
 
 // Funktion: Vorbereitung Deep Sleep
@@ -370,6 +409,9 @@ void setup() {
 
   // Button Wakeup Analyse
   handleButtonWakeup();
+
+  // Externen Flash schlafen legen (SPI ist seit epaperDisplay.init() konfiguriert)
+  powerDownExternalFlash();
 
   // Register Callbacks
   wifiHandler.onAccessPointStart([&](const String& url) {
