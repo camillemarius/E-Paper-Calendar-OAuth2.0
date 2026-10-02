@@ -39,8 +39,10 @@ WiFiHandler wifiHandler(180);
     GDEW075T7 epaperDisplay(27, 25, 26, 32, 18, 19, 23, 27);
 #elif defined(GOOGLECALENDAR_UNIVERSALDRIVERCACH_GDEP073E01)
     #include <GDEP073E01.h>
+    // Offen: Das sind die Pins des 24-poligen Steckers. Das 7,3″-Panel hängt am 50-poligen
+    // (CS 16, D/C 5, RES 17, BUSY 33), siehe docs/hardware-notes.md
     GDEP073E01 epaperDisplay(27, 25, 26, 32, 18, 19, 23, 27);
-    
+
 #elif defined(GOOGLECALENDAR_V1DRIVER_FPC8612)
     #include <FPC8612.h>
     FPC_8612 epaperDisplay(15, 27, 26, 25, 13, 12, 14, 15);

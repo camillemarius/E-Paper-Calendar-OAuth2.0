@@ -50,6 +50,29 @@ nach dem Start High, schickt U6 in Deep Power-Down und hält CS im Deep Sleep Hi
 **Empfehlung:** In einer nächsten Revision einen 10-kΩ-Pull-up von `CS_Flash` auf +3V3_FLASH
 vorsehen.
 
+## Stecker _50 (7,3″, GDEP073E01): offene Punkte
+
+Stand: 02.10.2026. Das 7,3″-Panel lief an der Universal-Platine bisher nicht.
+
+**1. Positive und negative Panelspannungen sind verbunden (Schema und Layout)**
+- An X4 Pin 32 und 31 stehen die Netznamen VSH_LV und VSH_LV2. Richtig sind laut Datenblatt
+  GDEP073E01 (S. 6) und Referenz DESPI-C73 (P1 Pin 19/20) **VSL_LV** und **VSL_LV2**.
+- Gleiche Netznamen verbindet Altium. Im Layout sind dadurch verbunden:
+  - Pin 35 ↔ 32 über zwei VSH_LV-Vias und eine Bahn auf der Unterseite;
+  - Pin 34 ↔ 31 über eine Bahn auf der Oberseite am inneren Ende der Pads, unter dem
+    Steckergehäuse.
+- **Korrektur in der nächsten Revision:** Netznamen an Pin 32/31 in VSL_LV/VSL_LV2 ändern.
+- **Vorhandene Platinen:** Die Bahn auf der Unterseite lässt sich mit dem Skalpell trennen. Die
+  Bahn unter dem Stecker ist erst nach Auslöten von X4 erreichbar. Nicht von unten bohren: Dort
+  läuft auf der Unterseite die VPH-Leitung.
+
+**2. Firmware: Kalender-Env spricht den falschen Stecker an**
+- `GoogleCalendar_UniversalDriverCACH_gdep073e01` nutzt die Pins des Steckers _24
+  (CS 27, D/C 25, RES 26, BUSY 32).
+- Das Panel hängt am Stecker _50: **CS 16, D/C 5, RES 17, BUSY 33**. Die Galerie-Variante
+  `Gallery_UniversalDriverCACH_GDEP073E01` nutzt diese Pins bereits.
+- Noch nicht korrigiert, Hinweis an der Stelle in `src/ePaperCalendar/main_calendar.cpp`.
+
 ## Prüfungen auf dem Gerät
 
 - **Flash U6:** JEDEC-ID `EF 40 15`, Löschen, Schreiben und Rücklesen eines Testsektors bestanden.
