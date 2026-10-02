@@ -186,6 +186,10 @@ void sleepUntilOneAM() {
     }
 
     time_t sleepSeconds = wakeupTime - now;
+#ifdef SLEEP_TEST_SECONDS
+    // Testbetrieb: nächtlichen Ablauf sofort prüfen (build_flags = -D SLEEP_TEST_SECONDS=120)
+    sleepSeconds = SLEEP_TEST_SECONDS;
+#endif
     uint64_t sleepMicros = (uint64_t)sleepSeconds * 1000000ULL;
 
     LOG_DEBUG("Going to sleep for %ld seconds until 1 AM", sleepSeconds);
@@ -193,7 +197,6 @@ void sleepUntilOneAM() {
 
     prepareDeepSleep();
     esp_sleep_enable_timer_wakeup(sleepMicros);
-    //esp_sleep_enable_timer_wakeup(60ULL * 1000000ULL); // 60 Sekunden Test
     esp_deep_sleep_start();
 }
 
