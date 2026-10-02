@@ -1,4 +1,5 @@
 #include "GDEP073E01.h"
+#include <ePaperPinHold.h>
 
 //Internal lib
 #include <logger.h>
@@ -16,6 +17,8 @@ GDEP073E01::GDEP073E01(uint8_t cs, uint8_t dc, uint8_t rst, uint8_t busy,
 
 void GDEP073E01::init() {
     LOG_DEBUG("Init FPC8612 Display and SPI");
+    // Pins aus dem Deep-Sleep-Hold lösen, bevor GxEPD2 den Controller zurücksetzt
+    ePaperPinHold::release({pinCS, pinDC, pinRST, pinSCK, pinMOSI});
     display.init(115200);
     SPI.end();
     SPI.begin(pinSCK, pinMISO, pinMOSI, pinSS);
@@ -24,6 +27,7 @@ void GDEP073E01::init() {
 void GDEP073E01::hibernate() {
     LOG_DEBUG("Hibernate display");
     display.hibernate();
+    ePaperPinHold::hold({pinCS, pinDC, pinRST, pinSCK, pinMOSI});
 }
 
 void GDEP073E01::setBusyCallback(void (*callback)(const void* busyPin)) {

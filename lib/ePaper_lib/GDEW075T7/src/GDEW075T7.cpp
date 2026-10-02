@@ -1,4 +1,5 @@
 #include "GDEW075T7.h"
+#include <ePaperPinHold.h>
 
 // Internal Library
 #include <logger.h>
@@ -17,6 +18,8 @@ GDEW075T7::GDEW075T7(uint8_t cs, uint8_t dc, uint8_t rst, uint8_t busy,
 
 void GDEW075T7::init() {
     LOG_DEBUG("Init GDEW075T7 Display and SPI");
+    // Pins aus dem Deep-Sleep-Hold lösen, bevor GxEPD2 den Controller zurücksetzt
+    ePaperPinHold::release({pinCS, pinDC, pinRST, pinSCK, pinMOSI});
     display.init(115200);
     SPI.end();
     SPI.begin(pinSCK, pinMISO, pinMOSI, pinSS);
@@ -25,6 +28,7 @@ void GDEW075T7::init() {
 void GDEW075T7::hibernate() {
     LOG_DEBUG("Hibernate display");
     display.hibernate();
+    ePaperPinHold::hold({pinCS, pinDC, pinRST, pinSCK, pinMOSI});
 }
 
 void GDEW075T7::setBusyCallback(void (*callback)(const void* busyPin)) {

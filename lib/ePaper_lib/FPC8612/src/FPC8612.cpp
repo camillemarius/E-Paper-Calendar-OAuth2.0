@@ -1,4 +1,5 @@
 #include "FPC8612.h"
+#include <ePaperPinHold.h>
 
 //Internal lib
 #include <logger.h>
@@ -17,6 +18,8 @@ FPC_8612::FPC_8612(uint8_t cs, uint8_t dc, uint8_t rst, uint8_t busy,
 
 void FPC_8612::init() {
     LOG_DEBUG("Init FPC8612 Display and SPI");
+    // Pins aus dem Deep-Sleep-Hold lösen, bevor GxEPD2 den Controller zurücksetzt
+    ePaperPinHold::release({pinCS, pinDC, pinRST, pinSCK, pinMOSI});
     display.init(115200);
     SPI.end();
     SPI.begin(pinSCK, pinMISO, pinMOSI, pinSS);
@@ -25,6 +28,7 @@ void FPC_8612::init() {
 void FPC_8612::hibernate() {
     LOG_DEBUG("Hibernate display");
     display.hibernate();
+    ePaperPinHold::hold({pinCS, pinDC, pinRST, pinSCK, pinMOSI});
 }
 
 void FPC_8612::setBusyCallback(void (*callback)(const void* busyPin)) {

@@ -1,4 +1,5 @@
 #include "WaveShare_13504.h"
+#include <ePaperPinHold.h>
 
 //Internal lib
 #include <logger.h>
@@ -17,6 +18,8 @@ WaveShare_13504::WaveShare_13504(uint8_t cs, uint8_t dc, uint8_t rst, uint8_t bu
 
 void WaveShare_13504::init() {
     LOG_DEBUG("Init FPC8612 Display and SPI");
+    // Pins aus dem Deep-Sleep-Hold lösen, bevor GxEPD2 den Controller zurücksetzt
+    ePaperPinHold::release({pinCS, pinDC, pinRST, pinSCK, pinMOSI});
     display.init(115200);
     SPI.end();
     SPI.begin(pinSCK, pinMISO, pinMOSI, pinSS);
@@ -25,6 +28,7 @@ void WaveShare_13504::init() {
 void WaveShare_13504::hibernate() {
     LOG_DEBUG("Hibernate display");
     display.hibernate();
+    ePaperPinHold::hold({pinCS, pinDC, pinRST, pinSCK, pinMOSI});
 }
 
 void WaveShare_13504::setBusyCallback(void (*callback)(const void* busyPin)) {
