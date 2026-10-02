@@ -55,7 +55,7 @@ WiFiHandler wifiHandler(180);
 #define TIMEZONE "CET-1CEST,M3.5.0/2,M10.5.0/3"   // Schweizer Zeitzone
 #define LED_PIN 32   // GPIO32
 #define BUTTON_PIN 2
-#define EXT_FLASH_CS BUTTON_PIN   // Universal-Platine: CS des Galerie-Flash, geteilt mit dem Knopf
+#define EXT_FLASH_CS 4   // Universal-Platine: CS_Flash des Galerie-Flash U6 (W25Q16JV), ohne Pull-up
 #define LONG_BUTTON_PRESS_TIME 5000   // 2 Sekunden
 
 enum class WakeupReason {
@@ -105,40 +105,47 @@ void lightSleepWhileDisplayBusy(const void* busyPinParam) {
 }
 
 // Funktion: Ein Befehl an den externen SPI-Flash
-// CS wird nur aktiv auf Low gezogen und über den Pull-up wieder High: wird dabei der Knopf
-// gedrückt (zieht GPIO2 auf GND), entsteht kein Kurzschluss.
 void extFlashCommand(uint8_t command, uint8_t* response = nullptr, size_t responseLen = 0) {
     SPI.beginTransaction(SPISettings(1000000, MSBFIRST, SPI_MODE0));
     digitalWrite(EXT_FLASH_CS, LOW);
-    pinMode(EXT_FLASH_CS, OUTPUT);
     SPI.transfer(command);
     for (size_t i = 0; i < responseLen; i++) {
         response[i] = SPI.transfer(0x00);
     }
-    pinMode(EXT_FLASH_CS, INPUT_PULLUP);
+    digitalWrite(EXT_FLASH_CS, HIGH);
     SPI.endTransaction();
-    delayMicroseconds(50);   // Anstieg über den Pull-up und Release-/Power-Down-Zeit des Flash
+    delayMicroseconds(50);   // Release-/Power-Down-Zeit des Flash
+}
+
+// Gültige JEDEC-ID: Hersteller weder 00 noch FF und nicht drei gleiche Bytes (Busrauschen)
+bool isValidJedec(const uint8_t* id) {
+    return id[0] != 0x00 && id[0] != 0xFF && !(id[0] == id[1] && id[1] == id[2]);
 }
 
 // Funktion: Externen SPI-Flash in Deep Power-Down
-// Auf der Universal-Platine hängt der Bild-Flash der Galerie am SPI-Bus des Displays. Der
+// Auf der Universal-Platine hängt der Bild-Flash U6 der Galerie am SPI-Bus des Displays. Der
 // Kalender nutzt ihn nicht, im Standby zieht er aber rund um die Uhr Strom. Im Deep
 // Power-Down (0xB9) bleibt er, bis er wieder 0xAB erhält oder die Platine stromlos wird.
+// CS_Flash hat keinen Pull-up: ohne Treiber zieht der interne Pull-down von IO4 den CS auf Low
+// und der Chip ist ständig ausgewählt. CS wird deshalb aktiv High getrieben und im Deep Sleep
+// gehalten (prepareDeepSleep).
 void powerDownExternalFlash() {
-    if (digitalRead(EXT_FLASH_CS) == LOW) {
-        return;   // Knopf gedrückt: CS ist belegt, beim nächsten Start erneut
-    }
-
-    extFlashCommand(0xAB);                      // Release, falls er schon schläft (sonst keine ID)
+    uint8_t before[3] = {0};
+    extFlashCommand(0x9F, before, sizeof(before));   // schläft er noch vom letzten Mal?
+    extFlashCommand(0xAB);                           // Release, sonst liefert er keine ID
     uint8_t jedec[3] = {0};
     extFlashCommand(0x9F, jedec, sizeof(jedec));
-    if (jedec[0] == 0x00 || jedec[0] == 0xFF) {
+    if (!isValidJedec(jedec)) {
         LOG_DEBUG("Kein externer SPI-Flash gefunden");
         return;
     }
 
     extFlashCommand(0xB9);
-    LOG_DEBUG("Externer SPI-Flash (JEDEC %02X %02X %02X) in Deep Power-Down", jedec[0], jedec[1], jedec[2]);
+    uint8_t after[3] = {0};
+    extFlashCommand(0x9F, after, sizeof(after));     // im Deep Power-Down antwortet er nicht mehr
+    LOG_DEBUG("Externer SPI-Flash (JEDEC %02X %02X %02X): %s, %s", jedec[0], jedec[1], jedec[2],
+              isValidJedec(before) ? "war wach" : "war im Deep Power-Down",
+              isValidJedec(after) ? "Deep Power-Down FEHLGESCHLAGEN" : "jetzt im Deep Power-Down");
 }
 
 // Funktion: Vorbereitung Deep Sleep
@@ -146,6 +153,10 @@ void powerDownExternalFlash() {
 // schickt den Display-Controller in Deep Sleep, init() weckt ihn beim nächsten Start per Reset.
 void prepareDeepSleep() {
     epaperDisplay.hibernate();
+    // CS_Flash im Deep Sleep High halten (kein Pull-up auf der Platine)
+    digitalWrite(EXT_FLASH_CS, HIGH);
+    pinMode(EXT_FLASH_CS, OUTPUT);
+    gpio_hold_en((gpio_num_t)EXT_FLASH_CS);
     Serial.flush();
 }
 
@@ -394,8 +405,14 @@ void setup() {
 
   // Initialize Button
   pinMode(BUTTON_PIN, INPUT_PULLUP);
-  esp_sleep_enable_ext0_wakeup(GPIO_NUM_2, 0);  
-  
+  esp_sleep_enable_ext0_wakeup(GPIO_NUM_2, 0);
+
+  // CS_Flash sofort High, bevor das Display den SPI-Bus benutzt (kein Pull-up auf der Platine).
+  // Pegel vor dem Lösen des Deep-Sleep-Holds setzen, damit der Pin nicht kurz auf Low fällt.
+  digitalWrite(EXT_FLASH_CS, HIGH);
+  pinMode(EXT_FLASH_CS, OUTPUT);
+  gpio_hold_dis((gpio_num_t)EXT_FLASH_CS);
+
   // Akku lesen, solange das WLAN noch aus ist (Spannung ohne Funklast)
   weeklyCalendar.readBattery();
 
