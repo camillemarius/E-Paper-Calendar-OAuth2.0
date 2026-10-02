@@ -10,7 +10,8 @@ class WebUploader
 public:
     using UploadCallback = void (*)(externalFlash& flash, size_t len, ImagePalette palette);
 
-    WebUploader(WebServer& server, externalFlash& flash, ImagePalette palette);
+    // displayId: Display, für das die Firmware gebaut ist (Webseite fragt es über /info ab)
+    WebUploader(WebServer& server, externalFlash& flash, ImagePalette palette, const char* displayId);
 
     void setUploadCallback(UploadCallback cb);
     void begin();
@@ -21,6 +22,7 @@ private:
     WebServer& server;
     externalFlash& flash;
     ImagePalette paletteMode;
+    const char* displayId;
     UploadCallback callback = nullptr;
 
     size_t imageSize = 0;

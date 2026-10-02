@@ -3,8 +3,8 @@
 #include "WebUploaderHtml.h"
 #include <logger.h>
 
-WebUploader::WebUploader(WebServer& server, externalFlash& flash, ImagePalette palette)
-    : server(server), flash(flash), paletteMode(palette)
+WebUploader::WebUploader(WebServer& server, externalFlash& flash, ImagePalette palette, const char* displayId)
+    : server(server), flash(flash), paletteMode(palette), displayId(displayId)
 {
 }
 
@@ -25,6 +25,14 @@ void WebUploader::begin()
         server.send(204);
     });
 
+    // Display und Farbanzahl, für die diese Firmware gebaut ist
+    server.on("/info", HTTP_GET, [this]()
+    {
+        String json = String("{\"display\":\"") + displayId +
+                      "\",\"colors\":" + static_cast<int>(paletteMode) + "}";
+        server.send(200, "application/json", json);
+    });
+
     server.on("/upload", HTTP_POST,
         [this]()
         {
@@ -39,10 +47,17 @@ void WebUploader::begin()
                 imageSize = 0;
                 uploadError = false;
                 LOG_DEBUG("EPD Upload START");
+
+                // Bildbereich löschen: ein NOR-Flash lässt sich nur auf gelöschte Bytes schreiben
+                if (!flash.eraseArea(0, EXPECTED_IMAGE_SIZE))
+                {
+                    LOG_ERROR("EPD Upload ERROR: Flash erase failed!");
+                    uploadError = true;
+                }
             }
             else if (raw.status == RAW_WRITE)
             {
-                if (raw.currentSize == 0)
+                if (raw.currentSize == 0 || uploadError)
                     return;
 
                 if (imageSize + raw.currentSize > EXPECTED_IMAGE_SIZE)

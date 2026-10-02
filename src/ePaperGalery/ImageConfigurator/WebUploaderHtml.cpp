@@ -252,15 +252,31 @@ canvas
 
         <select id="displayType">
 
-            <option value="GDEP073E01">
-                GDEP073E01 – 7 Farben
+            <option value="DEPG0750RWF86BF">
+                DEPG0750RWF86BF – 7,5″, 3 Farben
             </option>
 
             <option value="FPC8612">
-                FPC8612 – 3 Farben
+                FPC8612 – 7,5″, 3 Farben
+            </option>
+
+            <option value="GDEP073E01">
+                GDEP073E01 – 7,3″, 6 Farben
+            </option>
+
+            <option value="WAVESHARE_13504">
+                Waveshare 13504 (GDEY075T7) – 7,5″, Schwarz/Weiss
             </option>
 
         </select>
+
+
+        <div
+            id="displayHint"
+            class="status"
+        >
+            Angeschlossenes Display wird abgefragt...
+        </div>
 
 
         <!-- =====================================================
@@ -356,14 +372,23 @@ const EXPECTED_PACKED_SIZE =
  */
 
 let selectedDisplay =
-    "GDEP073E01";
+    "DEPG0750RWF86BF";
+
+
+/*
+ * Display, für das die Firmware gebaut ist (von /info gemeldet).
+ * null = unbekannt
+ */
+
+let connectedDisplay =
+    null;
 
 
 /*
  * ============================================================
  * Palettes
  *
- * Index:
+ * Die Indizes müssen zur Firmware passen (FlashImage.cpp):
  *
  * 0 = Black
  * 1 = White
@@ -373,33 +398,56 @@ let selectedDisplay =
 
 
 /*
- * 7-color display
+ * 6-color display (Spectra 6)
  */
 
-const PALETTE_GDEP073E01 =
+const PALETTE_6C =
 [
     [0,   0,   0],       // 0 Black
     [255, 255, 255],     // 1 White
     [255, 255, 0],       // 2 Yellow
     [255, 0,   0],       // 3 Red
     [0,   0,   255],     // 4 Blue
-    [0,   255, 0],       // 5 Green
-    [255, 128, 0]        // 6 Orange
+    [0,   255, 0]        // 5 Green
 ];
 
 
 /*
  * 3-color display
- *
- * FPC8612
  */
 
-const PALETTE_FPC8612 =
+const PALETTE_3C =
 [
     [0,   0,   0],       // 0 Black
     [255, 255, 255],     // 1 White
     [255, 0,   0]        // 2 Red
 ];
+
+
+/*
+ * Black/white display
+ */
+
+const PALETTE_2C =
+[
+    [0,   0,   0],       // 0 Black
+    [255, 255, 255]      // 1 White
+];
+
+
+/*
+ * ============================================================
+ * Display types of the gallery (all 800 x 480)
+ * ============================================================
+ */
+
+const DISPLAYS =
+{
+    DEPG0750RWF86BF: { name: "DEPG0750RWF86BF", palette: PALETTE_3C },
+    FPC8612:         { name: "FPC8612",         palette: PALETTE_3C },
+    GDEP073E01:      { name: "GDEP073E01",      palette: PALETTE_6C },
+    WAVESHARE_13504: { name: "Waveshare 13504", palette: PALETTE_2C }
+};
 
 
 /*
@@ -410,16 +458,118 @@ const PALETTE_FPC8612 =
 
 function getPalette()
 {
-    if (
-        selectedDisplay ===
-        "FPC8612"
-    )
+    return DISPLAYS[selectedDisplay].palette;
+}
+
+
+/*
+ * ============================================================
+ * Upload only for the display the firmware is built for
+ * ============================================================
+ */
+
+function uploadAllowed()
+{
+    return connectedDisplay === null ||
+           selectedDisplay === connectedDisplay;
+}
+
+
+function updateDisplayHint()
+{
+    const hint =
+        document.getElementById(
+            "displayHint"
+        );
+
+
+    if (connectedDisplay === null)
     {
-        return PALETTE_FPC8612;
+        hint.textContent =
+            "Angeschlossenes Display unbekannt.";
+    }
+    else if (!DISPLAYS[connectedDisplay])
+    {
+        hint.textContent =
+            "Die Firmware meldet " + connectedDisplay +
+            ". Dieses Display unterstützt die Galerie noch nicht.";
+    }
+    else if (selectedDisplay === connectedDisplay)
+    {
+        hint.textContent =
+            "Angeschlossen: " + DISPLAYS[connectedDisplay].name +
+            " (von der Firmware gemeldet).";
+    }
+    else
+    {
+        hint.textContent =
+            "Die Firmware ist für " + DISPLAYS[connectedDisplay].name +
+            " gebaut. Die Vorschau für " + DISPLAYS[selectedDisplay].name +
+            " ist möglich, der Upload ist gesperrt.";
+    }
+}
+
+
+/*
+ * ============================================================
+ * Ask the firmware which display it drives
+ * ============================================================
+ */
+
+async function loadDisplayInfo()
+{
+    try
+    {
+        const response =
+            await fetch(
+                "/info"
+            );
+
+
+        if (!response.ok)
+        {
+            throw new Error(
+                "HTTP " + response.status
+            );
+        }
+
+
+        const info =
+            await response.json();
+
+
+        connectedDisplay =
+            info.display;
+
+
+        if (DISPLAYS[connectedDisplay])
+        {
+            selectedDisplay =
+                connectedDisplay;
+
+
+            document
+                .getElementById(
+                    "displayType"
+                )
+                .value =
+                    connectedDisplay;
+        }
+    }
+    catch (error)
+    {
+        console.warn(
+            "Display-Info nicht verfügbar:",
+            error
+        );
+
+
+        connectedDisplay =
+            null;
     }
 
 
-    return PALETTE_GDEP073E01;
+    updateDisplayHint();
 }
 
 
@@ -1446,6 +1596,19 @@ async function uploadImage(packedImage)
 
 
     if (
+        !uploadAllowed()
+    )
+    {
+        status.textContent =
+            "Upload gesperrt: Die Firmware ist für " +
+            connectedDisplay +
+            " gebaut.";
+
+        return;
+    }
+
+
+    if (
         packedImage.length !==
         EXPECTED_PACKED_SIZE
     )
@@ -1581,6 +1744,9 @@ document
                 event.target.value;
 
 
+            updateDisplayHint();
+
+
             /*
              * If an image is already selected,
              * process it again immediately.
@@ -1623,7 +1789,7 @@ document
 
 
                 button.disabled =
-                    false;
+                    !uploadAllowed();
             }
             catch (error)
             {
@@ -1710,7 +1876,7 @@ document
 
 
                 button.disabled =
-                    false;
+                    !uploadAllowed();
             }
             catch (error)
             {
@@ -1767,6 +1933,15 @@ document
             );
         }
     );
+
+
+/*
+ * ============================================================
+ * Start: connected display from the firmware
+ * ============================================================
+ */
+
+loadDisplayInfo();
 
 </script>
 

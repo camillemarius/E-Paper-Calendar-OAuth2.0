@@ -25,7 +25,8 @@ bool FlashImage::readRGB565Line(uint16_t y, uint16_t* buffer, uint16_t bufferPix
         0x07E0  // green
     };
 
-    const uint16_t* palette = paletteMode == ImagePalette::ThreeColor ? PALETTE_3C : PALETTE_6C;
+    // Schwarz/Weiss nutzt die ersten beiden Einträge der 3-Farben-Palette
+    const uint16_t* palette = paletteMode == ImagePalette::SixColor ? PALETTE_6C : PALETTE_3C;
     const uint8_t paletteSize = static_cast<uint8_t>(paletteMode);
 
     for (uint16_t x = 0; x < WIDTH / 2; ++x)

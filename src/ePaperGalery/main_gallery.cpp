@@ -17,51 +17,79 @@
 
 WebServer server(80);
 
-// External Flash
-#define FLASH_CS 2
-externalFlash myFlash(FLASH_CS, 0x000000);
-
+// Universal-Platine: SPI auf IO18/19/23 für Displays und Flash U6 (W25Q16JV, CS_Flash an IO4).
+// Stecker _24 (7,5"): CS 27, D/C 25, RES 26, BUSY 32. Stecker _50 (7,3"): CS 16, D/C 5, RES 17, BUSY 33.
+// DISPLAY_ID muss zu den Display-Typen der Webseite passen (WebUploaderHtml.cpp, DISPLAYS)
 #ifdef GALLERY_UNIVERSALDRIVER_CACH_GDEP073E01
+    #define FLASH_CS 4
+    #define DISPLAY_ID "GDEP073E01"
     #include <GDEP073E01.h>
     GDEP073E01 display(16, 5, 17, 33, 18, 19, 23, 16);
     ImageView<GDEP073E01> viewer(display, 7);
     constexpr ImagePalette DISPLAY_PALETTE = ImagePalette::SixColor;
 
 #elif defined(GALLERY_UNIVERSALDRIVER_CACH_FPC8612)
+    #define FLASH_CS 4
+    #define DISPLAY_ID "FPC8612"
     #include <FPC8612.h>
-    FPC_8612 display(15, 27, 26, 25, 13, 12, 14, 15);
+    FPC_8612 display(27, 25, 26, 32, 18, 19, 23, 27);
     ImageView<FPC_8612> viewer(display, 3);
     constexpr ImagePalette DISPLAY_PALETTE = ImagePalette::ThreeColor;
 
 #elif defined(GALLERY_UNIVERSALDRIVER_CACH_DEPG0750RWF86BF)
-    // Gleiche Pins wie der Kalender auf der Universal-Platine (SPI auf 18/19/23, wie der Flash)
+    #define FLASH_CS 4
+    #define DISPLAY_ID "DEPG0750RWF86BF"
     #include <DEPG0750RWF86BF.h>
     DEPG0750RWF86BF display(27, 25, 26, 32, 18, 19, 23, 27);
     ImageView<DEPG0750RWF86BF> viewer(display, 3);
     constexpr ImagePalette DISPLAY_PALETTE = ImagePalette::ThreeColor;
 
+#elif defined(GALLERY_UNIVERSALDRIVER_CACH_WAVESHARE_13504)
+    #define FLASH_CS 4
+    #define DISPLAY_ID "WAVESHARE_13504"
+    #include <WaveShare_13504.h>
+    WaveShare_13504 display(27, 25, 26, 32, 18, 19, 23, 27);
+    ImageView<WaveShare_13504> viewer(display, 2);
+    constexpr ImagePalette DISPLAY_PALETTE = ImagePalette::TwoColor;
+
 #elif defined(GALLERY_V1DRIVER_FPC8612)
+    #define FLASH_CS 2
+    #define DISPLAY_ID "FPC8612"
     #include <FPC8612.h>
     FPC_8612 display(15, 27, 26, 25, 13, 12, 14, 15);
     ImageView<FPC_8612> viewer(display, 3);
+    constexpr ImagePalette DISPLAY_PALETTE = ImagePalette::ThreeColor;
 
 #elif defined(GALLERY_V1DRIVER_GDEW075T7)
+    // 640 x 384: die Galerie arbeitet mit 800 x 480, die Webseite sperrt den Upload
+    #define FLASH_CS 2
+    #define DISPLAY_ID "GDEW075T7"
     #include <GDEW075T7.h>
     GDEW075T7 display(15, 27, 26, 25, 13, 12, 14, 15);
     ImageView<GDEW075T7> viewer(display, 3);
+    constexpr ImagePalette DISPLAY_PALETTE = ImagePalette::ThreeColor;
 
 #elif defined(GALLERY_V1DRIVER_GDEP073E01)
+    #define FLASH_CS 2
+    #define DISPLAY_ID "GDEP073E01"
     #include <GDEP073E01.h>
     GDEP073E01 display(27, 14, 12, 13, 18, 19, 23, 15);
     ImageView<GDEP073E01> viewer(display, 3);
+    constexpr ImagePalette DISPLAY_PALETTE = ImagePalette::SixColor;
 
 #elif defined(GALLERY_V1DRIVER_WAVESHARE_13504)
+    #define FLASH_CS 2
+    #define DISPLAY_ID "WAVESHARE_13504"
     #include <WaveShare_13504.h>
     WaveShare_13504 display(15, 27, 26, 25, 13, 12, 14, 15);
     ImageView<WaveShare_13504> viewer(display, 2);
+    constexpr ImagePalette DISPLAY_PALETTE = ImagePalette::TwoColor;
 #endif
 
-WebUploader uploader(server, myFlash, DISPLAY_PALETTE);
+// External Flash
+externalFlash myFlash(FLASH_CS, 0x000000);
+
+WebUploader uploader(server, myFlash, DISPLAY_PALETTE, DISPLAY_ID);
 
 void onUpload(externalFlash& flash, size_t len, ImagePalette palette) { 
     LOG_DEBUG("EPD Daten im Flash: %u Bytes", (unsigned)len); 
