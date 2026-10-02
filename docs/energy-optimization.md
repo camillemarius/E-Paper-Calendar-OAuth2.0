@@ -34,7 +34,7 @@ starteten jede Nacht minutenlange Einrichtungsabläufe.
 | 11 | Akku vor dem WLAN lesen, kein QuickStart | Messgenauigkeit | Gerät |
 | 12 | TLS-Verbindung vor dem Zeichnen schliessen | Wachphase (Speicher) | Gerät |
 | 13 | Display-Leitungen im Deep Sleep festhalten | Deep Sleep | Gerät (Timer-Wakeup) |
-| 14 | Externer SPI-Flash in Deep Power-Down | Deep Sleep | Gerät (kein Chip erkannt) |
+| 14 | Externer SPI-Flash U6 in Deep Power-Down, CS im Deep Sleep High | Deep Sleep | Gerät 2 |
 
 ## Die Massnahmen im Detail
 
@@ -179,16 +179,27 @@ Die Strapping-Pins 0, 2 und 12 werden nie gehalten.
 
 ### 14. Externer SPI-Flash in Deep Power-Down
 
-`powerDownExternalFlash()` in `main_calendar.cpp`, `lib/externalFlash_lib/src/externalFlash.cpp`
+`powerDownExternalFlash()` und `prepareDeepSleep()` in `main_calendar.cpp`,
+`lib/externalFlash_lib/src/externalFlash.cpp`
 
-Der Bild-Flash der Galerie hängt am SPI-Bus des Displays, sein CS liegt auf GPIO2 zusammen mit
-dem Knopf. Der Kalender liest beim Start die JEDEC-ID und schickt den Chip mit `0xB9` in Deep
-Power-Down, wenn einer antwortet. CS wird nur aktiv auf Low gezogen und über den Pull-up wieder
-High, damit ein gedrückter Knopf nie gegen einen High-Pegel kurzschliesst.
-`externalFlash::begin()` in der Galerie sendet bei einem Fehlschlag `0xAB` (Release) und
-versucht es erneut.
+Der Bild-Flash U6 der Galerie (W25Q16JV, 2 MB) hängt am SPI-Bus des Displays, sein CS
+(`CS_Flash`) liegt auf **IO4** und hat **keinen Pull-up**. Ohne Treiber zieht der interne
+Pull-down von IO4 den CS auf Low, der Chip ist dann ständig ausgewählt und kommt nicht einmal in
+den Standby.
 
-Auf der getesteten Platine antwortet an diesem CS kein Chip, die Massnahme greift dort also nicht.
+- Gleich zu Beginn von `setup()` wird CS High getrieben, bevor das Display den Bus benutzt.
+- Der Kalender liest die JEDEC-ID und schickt den Chip mit `0xB9` in Deep Power-Down. Eine
+  zweite Abfrage prüft, dass er danach nicht mehr antwortet. IDs aus drei gleichen Bytes gelten
+  als Busrauschen.
+- `prepareDeepSleep()` hält CS im Deep Sleep High (`gpio_hold_en`).
+- `externalFlash::begin()` in der Galerie sendet bei einem Fehlschlag `0xAB` (Release) und
+  versucht es erneut, damit die Galerie den schlafenden Chip wieder findet.
+
+Auf Gerät 2 geprüft: erster Start „war wach, jetzt im Deep Power-Down“, zweiter Start „war im
+Deep Power-Down, jetzt im Deep Power-Down“. Die Galerie findet den Chip danach wieder.
+
+Die erste Version dieser Massnahme suchte den Flash an IO2 (aus der Galerie übernommen) und
+griff deshalb nicht. An IO2 liegt laut Schema nur der Benutzer-Taster S4.
 
 ## Messwerte vom Gerät
 
@@ -237,11 +248,10 @@ PLATFORMIO_BUILD_FLAGS="-D SLEEP_TEST_SECONDS=120" pio run -e GoogleCalendar_Uni
   stark von der Platine ab und wurde nicht gemessen. Massnahmen 4, 13 und 14 zielen darauf.
 - **WLAN-Schnellverbindung:** greift, ein Zeitvorteil war in der einen Messung bei −80 dBm nicht
   belegbar.
-- **Externer Flash:** auf der getesteten Platine an CS GPIO2 nicht ansprechbar, auch nicht von
-  der Galerie-Firmware. Bestückung und Verdrahtung prüfen.
+- **Pull-up auf `CS_Flash`:** Ein 10-kΩ-Pull-up auf IO4 in der nächsten Platinen-Revision hält
+  den Flash auch während Reset und Boot sicher abgewählt. Siehe
+  [hardware-notes.md](hardware-notes.md).
 - **Gmail-Kalender mit HTTP 404:** einer der gespeicherten Kalender ist für das angemeldete
-  Konto nicht erreichbar. Kalenderauswahl per Knopf neu treffen.
-- **Galerie-Pins:** Das Env `Gallery_UniversalDriverCACH_fpc8612` verwendet die V1-Pins,
-  `Gallery_UniversalDriverCACH_WAVESHARE_13504` hat keinen Zweig in `main_gallery.cpp`.
+  Konto nicht erreichbar. Kalenderauswahl per Taster S4 neu treffen.
 - **`timeMin` in UTC:** Die Terminabfrage beginnt um 00:00 UTC, also 01:00/02:00 Lokalzeit.
   Termine zwischen Mitternacht und diesem Zeitpunkt fehlen.
