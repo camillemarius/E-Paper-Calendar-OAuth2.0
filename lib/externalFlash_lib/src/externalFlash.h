@@ -36,6 +36,9 @@ public:
     // Erase the sectors covering [offset, offset + len) before writing (NOR flash: 1 -> 0 only)
     bool eraseArea(uint32_t offset, size_t len);
 
+    // Deep Power-Down (0xB9): about 1 uA until the next begin(), which wakes it up again
+    bool sleep();
+
     // Simple test: write and read back a string in the last sector (outside the image area)
     void test();
 };

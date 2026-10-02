@@ -115,6 +115,11 @@ bool externalFlash::eraseArea(uint32_t offset, size_t len)
     return true;
 }
 
+bool externalFlash::sleep()
+{
+    return flash.powerDown();
+}
+
 void externalFlash::test()
 {
     const char testMsg[] = "Hello Flash!";
