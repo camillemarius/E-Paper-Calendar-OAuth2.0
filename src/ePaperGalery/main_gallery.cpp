@@ -33,6 +33,13 @@ externalFlash myFlash(FLASH_CS, 0x000000);
     ImageView<FPC_8612> viewer(display, 3);
     constexpr ImagePalette DISPLAY_PALETTE = ImagePalette::ThreeColor;
 
+#elif defined(GALLERY_UNIVERSALDRIVER_CACH_DEPG0750RWF86BF)
+    // Gleiche Pins wie der Kalender auf der Universal-Platine (SPI auf 18/19/23, wie der Flash)
+    #include <DEPG0750RWF86BF.h>
+    DEPG0750RWF86BF display(27, 25, 26, 32, 18, 19, 23, 27);
+    ImageView<DEPG0750RWF86BF> viewer(display, 3);
+    constexpr ImagePalette DISPLAY_PALETTE = ImagePalette::ThreeColor;
+
 #elif defined(GALLERY_V1DRIVER_FPC8612)
     #include <FPC8612.h>
     FPC_8612 display(15, 27, 26, 25, 13, 12, 14, 15);
